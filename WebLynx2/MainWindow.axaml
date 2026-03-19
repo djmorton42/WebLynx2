@@ -1,0 +1,75 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="420"
+        x:Class="WebLynx2.MainWindow"
+        Title="WebLynx2"
+        Width="440" Height="400"
+        MinWidth="400"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Margin="0,16,0,0"
+                    Spacing="12">
+            <Button Content="Exit"
+                    MinWidth="120"
+                    Click="ExitButton_OnClick" />
+        </StackPanel>
+
+        <!-- Framed "Server Configuration" section -->
+        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="14,12"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Server Configuration"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,2" />
+                <Grid ColumnDefinitions="Auto,*"
+                      ColumnSpacing="12"
+                      RowDefinitions="Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               VerticalAlignment="Center"
+                               Text="FinishLynx Results Port" />
+                    <TextBox x:Name="ResultsPortTextBox"
+                             Grid.Row="0" Grid.Column="1"
+                             VerticalAlignment="Center"
+                             Margin="0,0,0,10" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               VerticalAlignment="Center"
+                               Text="FinishLynx Clock Port" />
+                    <TextBox x:Name="ClockPortTextBox"
+                             Grid.Row="1" Grid.Column="1"
+                             VerticalAlignment="Center"
+                             Margin="0,0,0,10" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0"
+                               VerticalAlignment="Center"
+                               Text="HTTP Port" />
+                    <TextBox x:Name="HttpPortTextBox"
+                             Grid.Row="2" Grid.Column="1"
+                             VerticalAlignment="Center"
+                             Margin="0,0,0,10" />
+
+                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,4,0,0"
+                                Spacing="10">
+                        <Button Content="Start Server"
+                                MinWidth="110" />
+                        <Button Content="Stop Server"
+                                MinWidth="110"
+                                IsEnabled="False" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</Window>
