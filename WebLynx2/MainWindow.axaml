@@ -2,74 +2,378 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="420"
+        xmlns:local="using:WebLynx2"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="720"
         x:Class="WebLynx2.MainWindow"
+        x:DataType="local:MainWindow"
         Title="WebLynx2"
-        Width="440" Height="400"
-        MinWidth="400"
+        Width="1400" Height="720"
+        MinWidth="820"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <SolidColorBrush x:Key="StatusNotListeningBrush" Color="#B71C1C" />
+        <SolidColorBrush x:Key="StatusListeningBrush" Color="#E65100" />
+        <SolidColorBrush x:Key="StatusConnectedBrush" Color="#1B5E20" />
+        <SolidColorBrush x:Key="StatusBadgeForegroundBrush" Color="#FFFFFF" />
+    </Window.Resources>
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Bottom"
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,16,0,0"
                     Spacing="12">
+            <Button Content="Save Changes"
+                    MinWidth="120"
+                    IsEnabled="False" />
             <Button Content="Exit"
                     MinWidth="120"
                     Click="ExitButton_OnClick" />
         </StackPanel>
 
-        <!-- Framed "Server Configuration" section -->
-        <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="14,12"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch">
-            <StackPanel Spacing="12">
-                <TextBlock Text="Server Configuration"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,2" />
-                <Grid ColumnDefinitions="Auto,*"
-                      ColumnSpacing="12"
-                      RowDefinitions="Auto,Auto,Auto,Auto">
-                    <TextBlock Grid.Row="0" Grid.Column="0"
-                               VerticalAlignment="Center"
-                               Text="FinishLynx Results Port" />
-                    <TextBox x:Name="ResultsPortTextBox"
-                             Grid.Row="0" Grid.Column="1"
-                             VerticalAlignment="Center"
-                             Margin="0,0,0,10" />
+        <Grid RowDefinitions="Auto,*"
+              RowSpacing="16"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,400"
+                  ColumnSpacing="16"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch">
+            <!-- Event Configuration (left) -->
+            <Border Grid.Column="0"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="14,12"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Event Configuration"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,2" />
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Event Title" />
+                        <TextBox x:Name="EventTitleTextBox"
+                                 Grid.Row="0" Grid.Column="1"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,0,10" />
 
-                    <TextBlock Grid.Row="1" Grid.Column="0"
-                               VerticalAlignment="Center"
-                               Text="FinishLynx Clock Port" />
-                    <TextBox x:Name="ClockPortTextBox"
-                             Grid.Row="1" Grid.Column="1"
-                             VerticalAlignment="Center"
-                             Margin="0,0,0,10" />
+                        <TextBlock Grid.Row="1" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Event Subtitle" />
+                        <TextBox x:Name="EventSubtitleTextBox"
+                                 Grid.Row="1" Grid.Column="1"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,0,10" />
 
-                    <TextBlock Grid.Row="2" Grid.Column="0"
-                               VerticalAlignment="Center"
-                               Text="HTTP Port" />
-                    <TextBox x:Name="HttpPortTextBox"
-                             Grid.Row="2" Grid.Column="1"
-                             VerticalAlignment="Center"
-                             Margin="0,0,0,10" />
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="1"
+                                   Text="Results Configuration"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Left"
+                                   Margin="0,8,0,4" />
 
-                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Right"
-                                Margin="0,4,0,0"
-                                Spacing="10">
-                        <Button Content="Start Server"
-                                MinWidth="110" />
-                        <Button Content="Stop Server"
-                                MinWidth="110"
-                                IsEnabled="False" />
-                    </StackPanel>
+                        <TextBlock Grid.Row="3" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Unofficial Results Path" />
+                        <Grid Grid.Row="3"
+                              Grid.Column="1"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8"
+                              Margin="0,0,0,10">
+                            <TextBox x:Name="UnofficialResultsPathTextBox"
+                                     Grid.Column="0"
+                                     VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
+                                    Content="Browse…"
+                                    MinWidth="80"
+                                    VerticalAlignment="Center"
+                                    Click="UnofficialResultsPathBrowse_OnClick" />
+                        </Grid>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Official Results Path" />
+                        <Grid Grid.Row="4"
+                              Grid.Column="1"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8"
+                              Margin="0,0,0,10">
+                            <TextBox x:Name="OfficialResultsPathTextBox"
+                                     Grid.Column="0"
+                                     VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
+                                    Content="Browse…"
+                                    MinWidth="80"
+                                    VerticalAlignment="Center"
+                                    Click="OfficialResultsPathBrowse_OnClick" />
+                        </Grid>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="File Encoding" />
+                        <ComboBox x:Name="FileEncodingComboBox"
+                                  Grid.Row="5" Grid.Column="1"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,0,10"
+                                  SelectedIndex="0">
+                            <ComboBoxItem Content="ISO-8859-1" />
+                            <ComboBoxItem Content="UTF-8" />
+                            <ComboBoxItem Content="Windows-1252" />
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Results Polling Interval (s)" />
+                        <NumericUpDown x:Name="ResultsPollingIntervalNumericUpDown"
+                                       Grid.Row="6" Grid.Column="1"
+                                       Width="140"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Center"
+                                       Minimum="1"
+                                       Maximum="3600"
+                                       Increment="1"
+                                       Value="1"
+                                       FormatString="N0"
+                                       ShowButtonSpinner="True"
+                                       ClipValueToMinMax="True" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Server Configuration (right, 400px column) -->
+            <Border Grid.Column="1"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="14,12"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Server Configuration"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,2" />
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12"
+                          RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="FinishLynx Results Port" />
+                        <TextBox x:Name="ResultsPortTextBox"
+                                 Grid.Row="0" Grid.Column="1"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,0,10" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="FinishLynx Clock Port" />
+                        <TextBox x:Name="ClockPortTextBox"
+                                 Grid.Row="1" Grid.Column="1"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,0,10" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="HTTP Port" />
+                        <TextBox x:Name="HttpPortTextBox"
+                                 Grid.Row="2" Grid.Column="1"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,0,10" />
+
+                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,4,0,0"
+                                    Spacing="10">
+                            <Button Content="Start Server"
+                                    MinWidth="110" />
+                            <Button Content="Stop Server"
+                                    MinWidth="110"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="Status"
+                               FontWeight="SemiBold"
+                               Margin="0,8,0,4" />
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12"
+                          RowDefinitions="Auto,Auto,Auto"
+                          RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Results Status" />
+                        <Border x:Name="ResultsStatusBadge"
+                                Grid.Row="0" Grid.Column="1"
+                                Background="{StaticResource StatusNotListeningBrush}"
+                                CornerRadius="4"
+                                Padding="10,5"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center">
+                            <TextBlock x:Name="ResultsStatusTextBlock"
+                                       Text="Not Listening"
+                                       Foreground="{StaticResource StatusBadgeForegroundBrush}"
+                                       FontWeight="SemiBold" />
+                        </Border>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Clock Status" />
+                        <Border x:Name="ClockStatusBadge"
+                                Grid.Row="1" Grid.Column="1"
+                                Background="{StaticResource StatusNotListeningBrush}"
+                                CornerRadius="4"
+                                Padding="10,5"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center">
+                            <TextBlock x:Name="ClockStatusTextBlock"
+                                       Text="Not Listening"
+                                       Foreground="{StaticResource StatusBadgeForegroundBrush}"
+                                       FontWeight="SemiBold" />
+                        </Border>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="HTTP Status" />
+                        <Border x:Name="HttpStatusBadge"
+                                Grid.Row="2" Grid.Column="1"
+                                Background="{StaticResource StatusNotListeningBrush}"
+                                CornerRadius="4"
+                                Padding="10,5"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center">
+                            <TextBlock x:Name="HttpStatusTextBlock"
+                                       Text="Not Listening"
+                                       Foreground="{StaticResource StatusBadgeForegroundBrush}"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            </Grid>
+
+            <!-- View Configuration (full width) -->
+            <Border Grid.Row="1"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="14,12"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    MinHeight="220">
+                <Grid RowDefinitions="Auto,*"
+                      ColumnDefinitions="*,*"
+                      ColumnSpacing="16">
+                    <TextBlock Grid.Row="0"
+                               Grid.Column="0"
+                               Grid.ColumnSpan="2"
+                               Text="View Configuration"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,10" />
+
+                    <!-- Same header row height on both columns so list tops align -->
+                    <Grid Grid.Row="1"
+                          Grid.Column="0"
+                          RowDefinitions="Auto,*"
+                          RowSpacing="6"
+                          VerticalAlignment="Stretch">
+                        <Grid Grid.Row="0"
+                              MinHeight="36"
+                              VerticalAlignment="Top">
+                            <TextBlock Text="Loaded Views"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                        <ListBox x:Name="LoadedViewsListBox"
+                                 Grid.Row="1"
+                                 ItemsSource="{Binding LoadedViews}"
+                                 MinHeight="160"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Stretch">
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Padding" Value="6,2" />
+                                    <Setter Property="MinHeight" Value="0" />
+                                </Style>
+                            </ListBox.Styles>
+                        </ListBox>
+                    </Grid>
+
+                    <Grid Grid.Row="1"
+                          Grid.Column="1"
+                          RowDefinitions="Auto,*"
+                          RowSpacing="6"
+                          VerticalAlignment="Stretch">
+                        <Grid Grid.Row="0"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8"
+                              MinHeight="36"
+                              VerticalAlignment="Top">
+                            <TextBlock Grid.Column="0"
+                                       Text="Properties"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="6"
+                                        VerticalAlignment="Center">
+                                <Button x:Name="AddViewPropertyButton"
+                                        Content="+"
+                                        MinWidth="36"
+                                        MinHeight="32"
+                                        Padding="8,4"
+                                        FontSize="16"
+                                        Click="AddViewProperty_OnClick" />
+                                <Button x:Name="RemoveViewPropertyButton"
+                                        Content="-"
+                                        MinWidth="36"
+                                        MinHeight="32"
+                                        Padding="8,4"
+                                        FontSize="16"
+                                        IsEnabled="False"
+                                        Click="RemoveSelectedViewProperty_OnClick" />
+                            </StackPanel>
+                        </Grid>
+                        <ListBox x:Name="ViewPropertiesListBox"
+                                 Grid.Row="1"
+                                 ItemsSource="{Binding ViewProperties}"
+                                 MinHeight="160"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Stretch"
+                                 SelectionChanged="ViewPropertiesListBox_OnSelectionChanged">
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Padding" Value="6,1" />
+                                    <Setter Property="MinHeight" Value="0" />
+                                </Style>
+                            </ListBox.Styles>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="local:ViewPropertyRow">
+                                    <Grid ColumnDefinitions="*,*"
+                                          ColumnSpacing="8">
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding Key}"
+                                                 Watermark="Key"
+                                                 VerticalAlignment="Center"
+                                                 MinHeight="28"
+                                                 KeyDown="ViewPropertyKeyTextBox_OnKeyDown" />
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding Value}"
+                                                 Watermark="Value"
+                                                 VerticalAlignment="Center"
+                                                 MinHeight="28" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
                 </Grid>
-            </StackPanel>
-        </Border>
+            </Border>
+        </Grid>
     </DockPanel>
 </Window>
