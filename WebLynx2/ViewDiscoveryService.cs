@@ -6,6 +6,7 @@ namespace WebLynx2;
 
 /// <summary>
 /// Scans a Views root directory for subfolders that match the WebLynx layout (each view is a folder with required <c>template.html</c>).
+/// Loads <c>view.properties</c> from the Views root first (shared defaults), then each valid view's own <c>view.properties</c> (overrides).
 /// </summary>
 public class ViewDiscoveryService
 {
@@ -52,11 +53,14 @@ public class ViewDiscoveryService
             return;
         }
 
+        var keyValueHistory = new Dictionary<string, (string firstSource, string firstValue)>(StringComparer.Ordinal);
+
+        var sharedPropertiesPath = Path.Combine(_viewsPath, "view.properties");
+        LoadPropertiesFile(sharedPropertiesPath, "Views directory (shared)", keyValueHistory);
+
         var viewDirectories = Directory.GetDirectories(_viewsPath)
             .Where(dir => !Path.GetFileName(dir).StartsWith('.'))
             .OrderBy(dir => Path.GetFileName(dir), StringComparer.OrdinalIgnoreCase);
-
-        var keyValueHistory = new Dictionary<string, (string firstView, string firstValue)>(StringComparer.Ordinal);
 
         foreach (var viewDirectory in viewDirectories)
         {
@@ -159,13 +163,17 @@ public class ViewDiscoveryService
     private void LoadViewProperties(
         string viewDirectory,
         string viewName,
-        Dictionary<string, (string firstView, string firstValue)> keyValueHistory)
+        Dictionary<string, (string firstSource, string firstValue)> keyValueHistory)
     {
-        if (_keyValueStore is null)
-            return;
+        LoadPropertiesFile(Path.Combine(viewDirectory, "view.properties"), $"view '{viewName}'", keyValueHistory);
+    }
 
-        var propertiesFilePath = Path.Combine(viewDirectory, "view.properties");
-        if (!File.Exists(propertiesFilePath))
+    private void LoadPropertiesFile(
+        string propertiesFilePath,
+        string sourceLabel,
+        Dictionary<string, (string firstSource, string firstValue)> keyValueHistory)
+    {
+        if (_keyValueStore is null || !File.Exists(propertiesFilePath))
             return;
 
         try
@@ -181,8 +189,8 @@ public class ViewDiscoveryService
                 if (equalIndex <= 0 || equalIndex >= trimmedLine.Length - 1)
                 {
                     _logger.LogWarning(
-                        "Invalid line format in view.properties for view {ViewName}: {Line}",
-                        viewName,
+                        "Invalid line format in view.properties ({Source}): {Line}",
+                        sourceLabel,
                         trimmedLine);
                     continue;
                 }
@@ -193,8 +201,8 @@ public class ViewDiscoveryService
                 if (string.IsNullOrEmpty(key))
                 {
                     _logger.LogWarning(
-                        "Empty key in view.properties for view {ViewName}: {Line}",
-                        viewName,
+                        "Empty key in view.properties ({Source}): {Line}",
+                        sourceLabel,
                         trimmedLine);
                     continue;
                 }
@@ -204,29 +212,29 @@ public class ViewDiscoveryService
                     if (history.firstValue != value)
                     {
                         _logger.LogWarning(
-                            "Key-value conflict for key '{Key}': view '{FirstView}' set '{FirstValue}', view '{CurrentView}' set '{CurrentValue}' (using '{CurrentValue}' - last one wins)",
+                            "Key-value conflict for key '{Key}': '{FirstSource}' set '{FirstValue}', '{CurrentSource}' set '{CurrentValue}' (using '{CurrentValue}' - last wins)",
                             key,
-                            history.firstView,
+                            history.firstSource,
                             history.firstValue,
-                            viewName,
+                            sourceLabel,
                             value,
                             value);
                     }
                 }
                 else
                 {
-                    keyValueHistory[key] = (viewName, value);
+                    keyValueHistory[key] = (sourceLabel, value);
                 }
 
                 _keyValueStore.SetValue(key, value);
-                _logger.LogDebug("Loaded key-value from view {ViewName}: {Key} = {Value}", viewName, key, value);
+                _logger.LogDebug("Loaded key-value from {Source}: {Key} = {Value}", sourceLabel, key, value);
             }
 
-            _logger.LogInformation("Loaded view.properties for view: {ViewName}", viewName);
+            _logger.LogInformation("Loaded view.properties from {Source}", sourceLabel);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load view.properties for view {ViewName}", viewName);
+            _logger.LogWarning(ex, "Failed to load view.properties from {Source}", sourceLabel);
         }
     }
 }

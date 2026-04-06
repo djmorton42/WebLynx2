@@ -319,7 +319,7 @@
                               MinHeight="36"
                               VerticalAlignment="Top">
                             <TextBlock Grid.Column="0"
-                                       Text="Properties"
+                                       Text="View Properties"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1"
