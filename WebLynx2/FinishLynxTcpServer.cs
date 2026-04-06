@@ -21,11 +21,12 @@ public enum TcpChannelUiStatus
 }
 
 /// <summary>
-/// Listens for FinishLynx clock and results TCP clients, logs UTF-16 payloads, and reports UI status.
+/// Listens for FinishLynx clock and results TCP clients, logs UTF-16 payloads, feeds the race parser, and reports UI status.
 /// </summary>
 public sealed class FinishLynxTcpServer
 {
     private readonly ReceivedDataFileLogger _logger;
+    private readonly RaceStateManager _raceStateManager;
     private readonly Action<TcpChannelKind, TcpChannelUiStatus> _onStatusChanged;
     private readonly int _bufferSize;
 
@@ -41,10 +42,12 @@ public sealed class FinishLynxTcpServer
 
     public FinishLynxTcpServer(
         ReceivedDataFileLogger logger,
+        RaceStateManager raceStateManager,
         Action<TcpChannelKind, TcpChannelUiStatus> onStatusChanged,
         int bufferSize = 65536)
     {
         _logger = logger;
+        _raceStateManager = raceStateManager;
         _onStatusChanged = onStatusChanged;
         _bufferSize = bufferSize;
     }
@@ -285,6 +288,10 @@ public sealed class FinishLynxTcpServer
                     _logger.LogClock(chunk);
                 else
                     _logger.LogResults(chunk);
+
+                var remote = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
+                var channelLabel = kind == TcpChannelKind.Clock ? "CLOCK" : "RESULTS";
+                _raceStateManager.ProcessMessage(chunk, $"{remote} ({channelLabel})");
             }
         }
         catch (OperationCanceledException)

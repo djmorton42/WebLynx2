@@ -24,7 +24,7 @@
                     Spacing="12">
             <Button Content="Save Changes"
                     MinWidth="120"
-                    IsEnabled="False" />
+                    Click="SaveChanges_OnClick" />
             <Button Content="Exit"
                     MinWidth="120"
                     Click="ExitButton_OnClick" />

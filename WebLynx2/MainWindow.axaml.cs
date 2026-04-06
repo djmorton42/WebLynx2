@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
+using Microsoft.Extensions.Logging;
+using WebLynx2.Models;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -20,10 +22,16 @@ public partial class MainWindow : Window
     private bool _portFieldSync;
     private bool _pollingIntervalSync;
     private FinishLynxTcpServer? _tcpServer;
+    private ILoggerFactory? _raceLogFactory;
 
-    public ObservableCollection<string> LoadedViews { get; } = new() { "Common" };
+    private readonly KeyValueStoreService _keyValueStore = new();
+
+    public ObservableCollection<string> LoadedViews { get; } = new();
 
     public ObservableCollection<ViewPropertyRow> ViewProperties { get; } = new();
+
+    /// <summary>Configuration values merged from <c>view.properties</c> and the properties grid (after Save).</summary>
+    public KeyValueStoreService KeyValueStore => _keyValueStore;
 
     public MainWindow()
     {
@@ -57,6 +65,39 @@ public partial class MainWindow : Window
         ResultsPortTextBox.Text = srv.ResultsPort.ToString();
         ClockPortTextBox.Text = srv.ClockPort.ToString();
         HttpPortTextBox.Text = srv.HttpPort.ToString();
+
+        RefreshDiscoveredViews(srv);
+    }
+
+    private void RefreshDiscoveredViews(ServerSettings server)
+    {
+        var root = ViewDiscoveryService.ResolveViewsRoot(server.ViewsDirectory);
+        var discovery = new ViewDiscoveryService(root, keyValueStore: _keyValueStore);
+        discovery.DiscoverViews();
+
+        LoadedViews.Clear();
+        foreach (var v in discovery.DiscoveredViews.Where(x => x.IsValid))
+            LoadedViews.Add(v.Name);
+
+        ApplyKeyValueStoreToViewProperties();
+    }
+
+    private void ApplyKeyValueStoreToViewProperties()
+    {
+        ViewProperties.Clear();
+        foreach (var kv in _keyValueStore.GetAllValues().OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+            ViewProperties.Add(new ViewPropertyRow { Key = kv.Key, Value = kv.Value });
+    }
+
+    private void SaveChanges_OnClick(object? sender, RoutedEventArgs e)
+    {
+        _keyValueStore.Clear();
+        foreach (var row in ViewProperties)
+        {
+            if (string.IsNullOrWhiteSpace(row.Key))
+                continue;
+            _keyValueStore.SetValue(row.Key.Trim(), row.Value);
+        }
     }
 
     private static void SelectFileEncodingComboItem(ComboBox combo, string encodingName)
@@ -242,11 +283,13 @@ public partial class MainWindow : Window
 
     private void MainWindow_OnClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (_tcpServer is null)
-            return;
+        if (_tcpServer is not null)
+        {
+            _tcpServer.StopAsync().GetAwaiter().GetResult();
+            _tcpServer = null;
+        }
 
-        _tcpServer.StopAsync().GetAwaiter().GetResult();
-        _tcpServer = null;
+        DisposeRaceFeed();
     }
 
     private async void StartServerButton_OnClick(object? sender, RoutedEventArgs e)
@@ -265,18 +308,25 @@ public partial class MainWindow : Window
             return;
         }
 
+        DisposeRaceFeed();
+
+        var raceLogFactory = LoggerFactory.Create(b => b.AddDebug());
+        var raceState = RaceFeedComposition.CreateRaceStateManager(raceLogFactory, new LapCounterSettings());
+
         var logger = new ReceivedDataFileLogger();
-        var server = new FinishLynxTcpServer(logger, OnTcpChannelStatusFromBackground);
+        var server = new FinishLynxTcpServer(logger, raceState, OnTcpChannelStatusFromBackground);
         try
         {
             server.Start(clockPort, resultsPort);
         }
         catch (Exception ex)
         {
+            raceLogFactory.Dispose();
             await ShowErrorDialogAsync($"Could not start TCP servers: {ex.Message}");
             return;
         }
 
+        _raceLogFactory = raceLogFactory;
         _tcpServer = server;
         SetServerChromeRunning(true);
     }
@@ -295,7 +345,14 @@ public partial class MainWindow : Window
         {
             _tcpServer = null;
             SetServerChromeRunning(false);
+            DisposeRaceFeed();
         }
+    }
+
+    private void DisposeRaceFeed()
+    {
+        _raceLogFactory?.Dispose();
+        _raceLogFactory = null;
     }
 
     private void OnTcpChannelStatusFromBackground(TcpChannelKind kind, TcpChannelUiStatus status)

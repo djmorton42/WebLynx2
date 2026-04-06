@@ -29,4 +29,9 @@ public sealed class ServerSettings
     public int ClockPort { get; set; } = 8080;
 
     public int HttpPort { get; set; } = 5001;
+
+    /// <summary>
+    /// Directory containing one subdirectory per view (same layout as WebLynx). Relative paths are resolved under the application base directory.
+    /// </summary>
+    public string ViewsDirectory { get; set; } = "Views";
 }
