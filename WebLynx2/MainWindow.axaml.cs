@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -27,9 +28,39 @@ public partial class MainWindow : Window
         AttachTcpPortField(ClockPortTextBox);
         AttachTcpPortField(HttpPortTextBox);
 
+        ApplyAppSettings(AppConfiguration.Load());
+
         ResultsPollingIntervalNumericUpDown.Loaded += (_, _) => AttachPollingIntervalInnerTextBox();
 
         SyncRemoveViewPropertyButtonEnabled();
+    }
+
+    private void ApplyAppSettings(AppSettings settings)
+    {
+        var ev = settings.Event;
+        EventTitleTextBox.Text = ev.Title;
+        EventSubtitleTextBox.Text = ev.Subtitle;
+        UnofficialResultsPathTextBox.Text = ev.UnofficialResultsPath;
+        OfficialResultsPathTextBox.Text = ev.OfficialResultsPath;
+        SelectFileEncodingComboItem(FileEncodingComboBox, ev.FileEncoding);
+        ResultsPollingIntervalNumericUpDown.Value = Math.Clamp(ev.PollingIntervalSeconds, 1, 3600);
+
+        var srv = settings.Server;
+        ResultsPortTextBox.Text = srv.ResultsPort.ToString();
+        ClockPortTextBox.Text = srv.ClockPort.ToString();
+        HttpPortTextBox.Text = srv.HttpPort.ToString();
+    }
+
+    private static void SelectFileEncodingComboItem(ComboBox combo, string encodingName)
+    {
+        foreach (var item in combo.Items)
+        {
+            if (item is ComboBoxItem { Content: string s } && string.Equals(s, encodingName, StringComparison.Ordinal))
+            {
+                combo.SelectedItem = item;
+                return;
+            }
+        }
     }
 
     private void ViewPropertiesListBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
