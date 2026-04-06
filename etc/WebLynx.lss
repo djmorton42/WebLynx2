@@ -1,0 +1,409 @@
+; Defaults: 9600,8,N,1
+;
+; Lynx Scoreboard Script Version 2.0
+;
+; Copyright (c) 1995-2022 Lynx System Developers, Inc.
+;
+; Written by Kirk Sigel
+;
+; Notes:
+;  + Empty lines and lines that start with a semicolon are ignored.
+;
+;  + Lines that start with two semicolons indicate a section header.
+;    Sections may be omitted, appear in any order, and occur more than once.
+;    The current section headers and their valid group codes are:
+;      ;;Initialization
+;        \10 \13 \17 \18
+;      ;;TimeArmed          (Normal)
+;      ;;TimeRunning        (Normal)
+;      ;;TimePaused         (Normal)	
+;      ;;TimeStopped        (Normal)
+;      ;;TimeGun            (Raw)
+;      ;;TimeBreak          (Raw)
+;      ;;TimeUpdate         (Raw)
+;      ;;TimeOfDay          (Normal & Raw)
+;        \11 \13 \17 \18
+;      ;;Wind               (Raw)
+;        \12 \13 \17 \18
+;      ;;StartListHeader
+;      ;;StartListTrailer
+;      ;;StartedHeader
+;      ;;StartedTrailer
+;      ;;ResultsHeader
+;      ;;ResultsTrailer
+;        \13 \17 \18
+;      ;;StartList
+;      ;;Started
+;      ;;Results (or ;;Result)
+;        \13 \14 \17 \18
+;      ;;MessageHeader
+;      ;;MessageTrailer
+;        \13 \15 \17 \18
+;      ;;Message
+;        \13 \15 \16 \17 \18
+;    The StartList*, Started*, and Results* sections may have an optional
+;    page number contained in square brackets immediately following the
+;    section name. If more than one page is defined for a section then each
+;    page will be shown, in order, when paging is enabled. Note that page
+;    numbers do not need to be contiguous; they are simply used to establish
+;    the order of pages. If a page number is omitted then a 0 (zero) is
+;    assumed.
+;    Some sections can be omitted and they will "fall back" to other
+;    sections. TimeOfDay falls back to TimeRunning. TimeArmed falls back to
+;    TimeRunning. TimePaused falls back to TimeStopped. The StartList* sections
+;    fall back to the Results* sections. The Started* sections fall back
+;    to the StartList* sections (after the StartList* sections have fallen
+;    back to the Results* sections if necessary).
+;
+;  + Format lines must begin with a one byte group code and a one byte
+;    variable code. The special variable code \00 indicates that no variable
+;    is being requested. If a variable is requested it will be inserted where
+;    a '%s' printf style format specifier appears. There can only be one '%s'
+;    specifier in lines requesting a variable and no other printf format
+;    specifiers may appear. Remember, lines requesting a variable are used as
+;    a printf format string and therefore must behave as such. Lines not 
+;    requesting a variable (variable code \00) can do whatever they want as
+;    these lines are not fed to a printf statement.
+;    The current group codes and their variable codes are:
+;      \10  Initialize
+;         \00  No variable
+;      \11  Time
+;         \00  No variable
+;         \01  Formatted time with tenth (when running) or hundredth (when
+;              stopped) precision
+;         \02  Binary time in milliseconds (4 byte little endian integer)
+;         \03  Formatted time with thousandth precision
+;         \04  Formatted time with ten thousandth precision
+;         \05  Formatted time with tenth precision
+;         \06  Formatted time with hundredth precision
+;         \07  Start source (0=invalid, 1=sensor, 2=manual, 3=RadioLynx,
+;                4=LapTime, 5=image, 6=internal, 7=TOD)
+;         \08  Start source string
+;      \12  Wind
+;         \00  No variable
+;         \01  Formatted wind
+;         \02  Binary wind in hundredths of units (4 byte little endian integer)
+;      \13  Results Header/Trailer
+;         \00  No variable
+;         \01  OFFICIAL/UNOFFICIAL string
+;         \02  Event name
+;         \03  Wind
+;         \04  Event number
+;         \05  Round number
+;         \06  Heat number
+;         \07  AUTO/MANUAL start type
+;         \08  Number of participants
+;         \09  ARMED/RUNNING status
+;         \0a  Distance
+;         \0b  Start source (see \11\07 above)
+;         \0c  Start source string
+;         \0d  Start time with ten thousandth precision
+;         \0e  Start time with thousandth precision
+;         \0f  Start time with hundredth precision
+;      \14  Result
+;         \00  No variable
+;         \01  Place
+;         \02  Lane
+;         \03  Id
+;         \04  Name
+;         \05  Affiliation
+;         \06  Time
+;         \07  Delta Time
+;         \08  Cumulative Split Time
+;         \09  Last Split Time
+;         \0a  Laps To Go
+;         \0b  License
+;         \0c  ReacTime
+;         \0d  Speed
+;         \0e  Pace
+;         \0f  Best Split Time
+;         \10  User1
+;         \11  User2
+;         \12  User3
+;         \13  "From Image" Cumulative Split Time
+;         \14  "From Image" Window Number
+;         \15  Delta Time 2
+;         \16  Delta Time 3
+;         \17  First Name
+;         \18  Last Name
+;         \19  Start Time (default behavior)
+;         \1a  Start Time (Time Trial key match only)
+;      \15  Message Header/Trailer
+;         \00  No variable
+;      \16  Message
+;         \00  No variable
+;         \01  Text
+;      \17  Break Time
+;         \00  No variable
+;         \nn  Formatted break time nn
+;      \18  Break Name
+;         \00  No variable
+;         \nn  Break name nn
+;
+;  + Arbitrary 8 bit values are entered as \hh where h is a lowercase hex
+;    digit. Note that h must be lowercase.
+;
+;  + Format lines can have the following commands embedded in them.
+;    Note that only 10 registers (indexed 0-9) are currently implemented.
+;     \U\hh   Set the 'U' value to hh. It is reset after the next command.
+;     \Ui\hh  Set the 'U' value to register[hh].
+;     \X\hh   Set the 'X' value to hh. It is reset after the next command.
+;     \Xi\hh  Set the 'X' value to register[hh].
+;     \=\hh   register[hh] = {register[U]|X|1}                 (assign)
+;     \*\hh   register[hh] = register[hh] * {register[U]|X|1}  (multiply)
+;     \/\hh   register[hh] = register[hh] / {register[U]|X|1}  (divide)
+;     \#\hh   register[hh] = register[hh] # {register[U]|X|1}  (modulus)
+;     \+\hh   register[hh] = register[hh] + {register[U]|X|1}  (add)
+;     \-\hh   register[hh] = register[hh] - {register[U]|X|1}  (subtract)
+;     \<\hh   register[hh] = register[hh] << {register[U]|X|1} (shift left)
+;     \>\hh   register[hh] = register[hh] >> {register[U]|X|1} (shift right)
+;     \&\hh   register[hh] = register[hh] & {register[U]|X|1}  (bit and)
+;     \|\hh   register[hh] = register[hh] | {register[U]|X|1}  (bit or)
+;     \^\hh   register[hh] = register[hh] ^ {register[U]|X|1}  (bit xor)
+;     \~\hh   register[hh] = ~register[hh]                     (bit invert)
+;     \!\hh   register[hh] = !register[hh]                     (logical invert)
+;     \F\hh   register[hh] = The result of running Function {U|0} on the 
+;             next {X|<eol>} characters.
+;              \U\00  IDS checksum.
+;              \U\01  XOR checksum. register[hh] is used as the seed value.
+;              \U\02  ADD checksum. register[hh] is used as the seed value.
+;              \U\03  CRC-16. register[hh] is used as the seed value
+;                       and register[hh+1] is the polynomial.
+;              \U\04  CRC-32. register[hh] is used as the seed value
+;                       and register[hh+1] is the polynomial.
+;     \O\hh   Output register[hh] as an {X|1} byte value using method {U|0}.
+;              \U\00  Binary little-endian (Intel byte order).
+;              \U\01  Binary big-endian (Motorola byte order).
+;              \U\02  ASCII text right justified space padded.
+;              \U\03  ASCII text right justified zero padded.
+;              \U\04  ASCII text left justified space padded.
+;              \U\05  ASCII text left justified zero padded.
+;     \S\hh   Scan the next {X|1} bytes into register[hh] using method {U|0}.
+;              \U\00  ASCII text base 10.
+;              \U\01  Binary little-endian (Intel byte order).
+;              \U\02  Binary big-endian (Motorola byte order).
+;     \P\hh   Run Procedure hh on the next {X|<eol>} characters.
+;              \P\00  Reverse characters.
+;              \P\01  Convert characters to Colorado Time format. Register[1]
+;                       is the current character position on entry and the
+;                       next character position on exit.
+;              \P\02  Convert characters to Daktronics AllSport format.
+;     \B\hh   Delete {register[U]|hh} (to beginning of line if zero) characters 
+;             before the cursor or until the string contains X characters.
+;     \D\hh   Delete {register[U]|hh} (to end of line if zero) characters 
+;             at the cursor or until the string contains X characters.
+;     \I\hh   Insert {register[U]|hh} spaces at the cursor or until the string
+;             contains X characters.
+;     \Ic\hh  Insert {register[U]|hh} {X's|spaces} at the cursor.
+;     \L\hh   Move the cursor {register[U]|hh} positions to the left (to the 
+;             beginning of the line if zero).
+;     \R\hh   Move the cursor {register[U]|hh} positions to the right (to the
+;             end of the line if zero).
+;     \He\hh  Halt if register[hh] == {register[U]|X|0}.
+;     \Hn\hh  Halt if register[hh] != {register[U]|X|0}.
+;     \Hl\hh  Halt if register[hh] <  {register[U]|X|0}.
+;     \Hm\hh  Halt if register[hh] <= {register[U]|X|0}.
+;     \Hg\hh  Halt if register[hh] >  {register[U]|X|0}.
+;     \Hh\hh  Halt if register[hh] >= {register[U]|X|0}.
+;    Note that numbers 0 thru 9 can be entered directly for single character
+;    embedded commands. For example, '\U\04' is the same as '\U4' and 
+;    '\=\01' is the same as '\=1'.
+;
+;  + Be very careful about whitespace in each format line. Characters other
+;    than '%s' specifiers and embedded commands and values will be sent
+;    exactly as they appear on the line. This means, for instance, that using
+;    tabs to make a line 'look right' in your favorite editor will cause
+;    tabs to be sent to the scoreboard instead of the equivalent number of
+;    spaces (probably not what you wanted).
+;
+; The format lines follow.
+
+;;Initialization
+; This is sent once to initialize the scoreboard.
+\10\00\0d\0a*** Initialize the scoreboard ***\0d\0a
+
+;;TimeRunning
+; This is sent approximately 10 times per second.
+; Setting register[0] to 1 in a format line will cause that line and
+; subsequent lines to only be sent once per second (when the seconds
+; digit changes) instead of approximately 10 times per second. Setting
+; register[0] to 0 will resume normal operation for remaining lines.
+\11\01\0dRunning time: %12.12s
+
+;;TimeStopped
+; This is sent when the time is stopped by a beam break.
+\11\01\0dStopped time: %12.12s
+
+;;TimeGun
+; This is sent when a gun signal is received.
+\11\01\0d\0aGun time    : %12.12s\0d\0a
+
+;;TimeBreak
+; This is sent when a beam break is received.
+\11\01\0d\0aBreak time  : %12.12s\0d\0a
+
+;;TimeUpdate
+; This is sent approximately 10 times per second.
+\11\01\0dUpdate time : %12.12s
+
+;;TimeOfDay
+; This is sent when the 'Send time of day' option is checked in the
+; Scoreboard pull down menu.
+\11\01\=0\0dTime of day: %12.12s\B4
+
+;;Wind
+; This is sent in the time stream when a wind reading is received.
+\12\01\0d\0aWind        : %12.12s\0d\0a
+
+;;StartListHeader
+; This is sent once each time the scoreboard is updated with results. It
+; is sent before any result lines are sent.
+\13\00*** StartListHeader ***\0d\0a
+\13\01OFFICIAL/UNOFFICIAL: %s\0d\0a
+\13\02Event name         : %s\0d\0a
+\13\03Wind               : %s\0d\0a
+\13\04Event number       : %s\0d\0a
+\13\05Round number       : %s\0d\0a
+\13\06Heat number        : %s\0d\0a
+\13\00EEE-R-HH Name      : 
+\13\04%3.3s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\L1\X0\=2\S2\X\64\*2\U2\+1\D0\X3\U3\O1-
+\13\05%1.1s\L1\X0\=1\S1\D0\X1\U3\O1-
+\13\06%2.2s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\D0\X2\U3\O1
+\13\00\0d\0a
+\13\07AUTO/MANUAL start  : %s\0d\0a
+\13\08Number of results  : %s\0d\0a
+\13\00Ln  Id   Name                                               Affiliation                    Laps  \0d\0a
+\13\00--- ---- -------------------------------------------------- ------------------------------ ------\0d\0a
+
+;;StartList
+; This is sent once for each result line displayed on the scoreboard.
+\14\02%-3.3s 
+\14\03%-4.4s 
+\14\04%-50.50s 
+\14\05%-30.30s 
+\14\0a%-6.6s
+\14\00\0d\0a
+
+;;StartedHeader
+; This is sent once each time the scoreboard is updated with results. It
+; is sent before any result lines are sent.
+\13\00*** StartedHeader ***\0d\0a
+\13\01OFFICIAL/UNOFFICIAL: %s\0d\0a
+\13\02Event name         : %s\0d\0a
+\13\03Wind               : %s\0d\0a
+\13\04Event number       : %s\0d\0a
+\13\05Round number       : %s\0d\0a
+\13\06Heat number        : %s\0d\0a
+\13\00EEE-R-HH Name      : 
+\13\04%3.3s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\L1\X0\=2\S2\X\64\*2\U2\+1\D0\X3\U3\O1-
+\13\05%1.1s\L1\X0\=1\S1\D0\X1\U3\O1-
+\13\06%2.2s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\D0\X2\U3\O1
+\13\00\0d\0a
+\13\07AUTO/MANUAL start  : %s\0d\0a
+\13\08Number of results  : %s\0d\0a
+\13\00Plc Ln  ReacTime Cum ST   Last ST  Best ST  Laps   Speed  Pace  \0d\0a
+\13\00--- --- -------- -------- -------- -------- ------ ------ ------\0d\0a
+
+;;Started
+; This is sent once for each result line displayed on the scoreboard.
+; Register[0] is initialized with the index of the current result line and
+; will range from 0 through PageSize - 1.
+\14\01%-3.3s 
+\14\02%-3.3s 
+\14\0c%-8.8s 
+\14\08%-8.8s 
+\14\09%-8.8s 
+\14\0f%-8.8s 
+\14\0a%-6.6s 
+\14\0d%-6.6s 
+\14\0e%-6.6s
+\14\00\0d\0a
+
+;;ResultsHeader[1]
+; This is sent once each time the scoreboard is updated with results. It
+; is sent before any result lines are sent.
+\13\00*** ResultsHeader[1] ***\0d\0a
+\13\01OFFICIAL/UNOFFICIAL: %s\0d\0a
+\13\02Event name         : %s\0d\0a
+\13\03Wind               : %s\0d\0a
+\13\04Event number       : %s\0d\0a
+\13\05Round number       : %s\0d\0a
+\13\06Heat number        : %s\0d\0a
+\13\00EEE-R-HH Name      : 
+\13\04%3.3s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\L1\X0\=2\S2\X\64\*2\U2\+1\D0\X3\U3\O1-
+\13\05%1.1s\L1\X0\=1\S1\D0\X1\U3\O1-
+\13\06%2.2s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\D0\X2\U3\O1
+\13\00\0d\0a
+\13\07AUTO/MANUAL start  : %s\0d\0a
+\13\08Number of results  : %s\0d\0a
+\13\00Plc Ln  Id   Name                                               Affiliation                    Time     Delta    ReacTime\0d\0a
+\13\00--- --- ---- -------------------------------------------------- ------------------------------ -------- -------- --------\0d\0a
+
+;;Results[1]
+; This is sent once for each result line displayed on the scoreboard.
+; Register[0] is initialized with the index of the current result line and
+; will range from 0 through PageSize - 1.
+\14\01%-3.3s 
+\14\02%-3.3s 
+\14\03%-4.4s 
+\14\04%-50.50s 
+\14\05%-30.30s 
+\14\06%-8.8s 
+\14\07%-8.8s 
+\14\0c%-8.8s 
+\14\00\0d\0a
+
+;;ResultsHeader[2]
+; This is sent once each time the scoreboard is updated with results. It
+; is sent before any result lines are sent.
+\13\00*** ResultsHeader[2] ***\0d\0a
+\13\01OFFICIAL/UNOFFICIAL: %s\0d\0a
+\13\02Event name         : %s\0d\0a
+\13\03Wind               : %s\0d\0a
+\13\04Event number       : %s\0d\0a
+\13\05Round number       : %s\0d\0a
+\13\06Heat number        : %s\0d\0a
+\13\00EEE-R-HH Name      : 
+\13\04%3.3s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\L1\X0\=2\S2\X\64\*2\U2\+1\D0\X3\U3\O1-
+\13\05%1.1s\L1\X0\=1\S1\D0\X1\U3\O1-
+\13\06%2.2s\L1\X0\=1\S1\L1\X0\=2\S2\X\0a\*2\U2\+1\D0\X2\U3\O1
+\13\00\0d\0a
+\13\07AUTO/MANUAL start  : %s\0d\0a
+\13\08Number of results  : %s\0d\0a
+\13\00Plc Ln  Cum ST   Last ST  Best ST  Laps   Speed  Pace  \0d\0a
+\13\00--- --- -------- -------- -------- ------ ------ ------\0d\0a
+
+;;Results[2]
+; This is sent once for each result line displayed on the scoreboard.
+; Register[0] is initialized with the index of the current result line and
+; will range from 0 through PageSize - 1.
+\14\01%-3.3s 
+\14\02%-3.3s 
+\14\08%-8.8s 
+\14\09%-8.8s 
+\14\0f%-8.8s 
+\14\0a%-6.6s 
+\14\0d%-6.6s 
+\14\0e%-6.6s
+\14\00\0d\0a
+
+;;ResultsTrailer
+; This is sent once each time the scoreboard is updated with results. It
+; is sent after all result lines are sent.
+\13\00*** StartList/Started/ResultsTrailer ***\0d\0a\0d\0a
+
+;;MessageHeader
+; This is sent once each time the scoreboard is updated with the message. It
+; is sent before any message lines are sent.
+\15\00Message Header\0d\0a
+
+;;Message
+; This is sent once for each message line displayed on the scoreboard.
+; Register[0] is initialized with the index of the current message line and
+; will range from 0 through <number of lines> - 1.
+\16\01%s\0d\0a
+
+;;MessageTrailer
+; This is sent once each time the scoreboard is updated with the message. It
+; is sent after all message lines are sent.
+\15\00Message Trailer\0d\0a
