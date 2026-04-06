@@ -1,11 +1,16 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace WebLynx2;
@@ -14,6 +19,7 @@ public partial class MainWindow : Window
 {
     private bool _portFieldSync;
     private bool _pollingIntervalSync;
+    private FinishLynxTcpServer? _tcpServer;
 
     public ObservableCollection<string> LoadedViews { get; } = new() { "Common" };
 
@@ -33,6 +39,8 @@ public partial class MainWindow : Window
         ResultsPollingIntervalNumericUpDown.Loaded += (_, _) => AttachPollingIntervalInnerTextBox();
 
         SyncRemoveViewPropertyButtonEnabled();
+
+        Closing += MainWindow_OnClosing;
     }
 
     private void ApplyAppSettings(AppSettings settings)
@@ -231,4 +239,152 @@ public partial class MainWindow : Window
     }
 
     private void ExitButton_OnClick(object? sender, RoutedEventArgs e) => Close();
+
+    private void MainWindow_OnClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_tcpServer is null)
+            return;
+
+        _tcpServer.StopAsync().GetAwaiter().GetResult();
+        _tcpServer = null;
+    }
+
+    private async void StartServerButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (!TryParsePort(ResultsPortTextBox.Text, out var resultsPort) ||
+            !TryParsePort(ClockPortTextBox.Text, out var clockPort) ||
+            !TryParsePort(HttpPortTextBox.Text, out _))
+        {
+            await ShowErrorDialogAsync("Enter valid port numbers from 1 to 65535 for all three fields.");
+            return;
+        }
+
+        if (resultsPort == clockPort)
+        {
+            await ShowErrorDialogAsync("FinishLynx results and clock ports must be different.");
+            return;
+        }
+
+        var logger = new ReceivedDataFileLogger();
+        var server = new FinishLynxTcpServer(logger, OnTcpChannelStatusFromBackground);
+        try
+        {
+            server.Start(clockPort, resultsPort);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorDialogAsync($"Could not start TCP servers: {ex.Message}");
+            return;
+        }
+
+        _tcpServer = server;
+        SetServerChromeRunning(true);
+    }
+
+    private async void StopServerButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_tcpServer is null)
+            return;
+
+        StopServerButton.IsEnabled = false;
+        try
+        {
+            await _tcpServer.StopAsync();
+        }
+        finally
+        {
+            _tcpServer = null;
+            SetServerChromeRunning(false);
+        }
+    }
+
+    private void OnTcpChannelStatusFromBackground(TcpChannelKind kind, TcpChannelUiStatus status)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+            ApplyTcpChannelStatus(kind, status);
+        else
+            Dispatcher.UIThread.Post(() => ApplyTcpChannelStatus(kind, status));
+    }
+
+    private void ApplyTcpChannelStatus(TcpChannelKind kind, TcpChannelUiStatus status)
+    {
+        var border = kind == TcpChannelKind.Clock ? ClockStatusBadge : ResultsStatusBadge;
+        var text = kind == TcpChannelKind.Clock ? ClockStatusTextBlock : ResultsStatusTextBlock;
+
+        text.Text = status switch
+        {
+            TcpChannelUiStatus.NotListening => "Not Listening",
+            TcpChannelUiStatus.Listening => "Listening",
+            TcpChannelUiStatus.Connected => "Connected",
+            _ => text.Text
+        };
+
+        var key = status switch
+        {
+            TcpChannelUiStatus.NotListening => "StatusNotListeningBrush",
+            TcpChannelUiStatus.Listening => "StatusListeningBrush",
+            TcpChannelUiStatus.Connected => "StatusConnectedBrush",
+            _ => "StatusNotListeningBrush"
+        };
+
+        if (this.TryFindResource(key, out var res) && res is IBrush brush)
+            border.Background = brush;
+    }
+
+    private void SetServerChromeRunning(bool running)
+    {
+        StartServerButton.IsEnabled = !running;
+        StopServerButton.IsEnabled = running;
+        ResultsPortTextBox.IsEnabled = !running;
+        ClockPortTextBox.IsEnabled = !running;
+        HttpPortTextBox.IsEnabled = !running;
+    }
+
+    private static bool TryParsePort(string? text, out int port)
+    {
+        port = 0;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out port)
+               && port is >= 1 and <= 65535;
+    }
+
+    private async Task ShowErrorDialogAsync(string message)
+    {
+        var ok = new Button
+        {
+            Content = "OK",
+            HorizontalAlignment = HorizontalAlignment.Right,
+            MinWidth = 80
+        };
+
+        var dialog = new Window
+        {
+            Title = "WebLynx2",
+            Width = 440,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new StackPanel
+            {
+                Margin = new Thickness(20),
+                Spacing = 14,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = message,
+                        TextWrapping = TextWrapping.Wrap,
+                        MaxWidth = 400
+                    },
+                    ok
+                }
+            }
+        };
+
+        ok.Click += (_, _) => dialog.Close();
+
+        await dialog.ShowDialog(this);
+    }
 }

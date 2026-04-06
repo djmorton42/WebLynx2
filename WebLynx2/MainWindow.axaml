@@ -190,11 +190,15 @@
                                     HorizontalAlignment="Right"
                                     Margin="0,4,0,0"
                                     Spacing="10">
-                            <Button Content="Start Server"
-                                    MinWidth="110" />
-                            <Button Content="Stop Server"
+                            <Button x:Name="StartServerButton"
+                                    Content="Start Server"
                                     MinWidth="110"
-                                    IsEnabled="False" />
+                                    Click="StartServerButton_OnClick" />
+                            <Button x:Name="StopServerButton"
+                                    Content="Stop Server"
+                                    MinWidth="110"
+                                    IsEnabled="False"
+                                    Click="StopServerButton_OnClick" />
                         </StackPanel>
                     </Grid>
 
