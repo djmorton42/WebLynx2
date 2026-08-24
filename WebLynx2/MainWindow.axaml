@@ -30,6 +30,8 @@
                     Click="ExitButton_OnClick" />
         </StackPanel>
 
+        <TabControl>
+            <TabItem Header="Configuration">
         <Grid RowDefinitions="Auto,*"
               RowSpacing="16"
               HorizontalAlignment="Stretch"
@@ -142,6 +144,7 @@
                                        FormatString="N0"
                                        ShowButtonSpinner="True"
                                        ClipValueToMinMax="True" />
+
                     </Grid>
                 </StackPanel>
             </Border>
@@ -315,7 +318,8 @@
                                  ItemsSource="{Binding LoadedViews}"
                                  MinHeight="160"
                                  HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Stretch">
+                                 VerticalAlignment="Stretch"
+                                 SelectionChanged="LoadedViewsListBox_OnSelectionChanged">
                             <ListBox.Styles>
                                 <Style Selector="ListBoxItem">
                                     <Setter Property="Padding" Value="6,2" />
@@ -377,5 +381,140 @@
                 </Grid>
             </Border>
         </Grid>
+            </TabItem>
+
+            <TabItem Header="Race State">
+                <Grid RowDefinitions="Auto,Auto,*"
+                      RowSpacing="12"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch">
+                    <Border Grid.Row="0"
+                            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="14,12">
+                        <Grid ColumnDefinitions="Auto,*"
+                              ColumnSpacing="16"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                              RowSpacing="8">
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="Status" />
+                            <TextBlock x:Name="RaceStatusTextBlock"
+                                       Grid.Row="0" Grid.Column="1"
+                                       FontFamily="Menlo, Monaco, Consolas, monospace" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="Clock" />
+                            <TextBlock x:Name="RaceClockTextBlock"
+                                       Grid.Row="1" Grid.Column="1"
+                                       FontFamily="Menlo, Monaco, Consolas, monospace" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="Last Updated" />
+                            <TextBlock x:Name="RaceLastUpdatedTextBlock"
+                                       Grid.Row="2" Grid.Column="1"
+                                       FontFamily="Menlo, Monaco, Consolas, monospace" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0"
+                                       Text="Event" />
+                            <TextBlock x:Name="RaceEventTextBlock"
+                                       Grid.Row="3" Grid.Column="1"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0"
+                                       Text="Wind" />
+                            <TextBlock x:Name="RaceWindTextBlock"
+                                       Grid.Row="4" Grid.Column="1" />
+
+                            <TextBlock Grid.Row="5" Grid.Column="0"
+                                       Text="Feed" />
+                            <TextBlock x:Name="RaceFeedStatusTextBlock"
+                                       Grid.Row="5" Grid.Column="1"
+                                       Opacity="0.85" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="14,12">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Announcement"
+                                       FontWeight="SemiBold" />
+                            <TextBlock x:Name="RaceAnnouncementTextBlock"
+                                       TextWrapping="Wrap"
+                                       MinHeight="20"
+                                       FontFamily="Menlo, Monaco, Consolas, monospace" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2"
+                            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="14,12"
+                            VerticalAlignment="Stretch">
+                        <Grid RowDefinitions="Auto,*"
+                              RowSpacing="8">
+                            <TextBlock Grid.Row="0"
+                                       Text="Racers"
+                                       FontWeight="SemiBold" />
+                            <ListBox Grid.Row="1"
+                                     ItemsSource="{Binding RaceRacers}"
+                                     MinHeight="200"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch">
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="Padding" Value="6,2" />
+                                        <Setter Property="MinHeight" Value="0" />
+                                    </Style>
+                                </ListBox.Styles>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="local:RaceRacerDisplayRow">
+                                        <Grid ColumnDefinitions="Auto,2*,2*,Auto,Auto,Auto,Auto,Auto"
+                                              ColumnSpacing="10">
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding Lane}"
+                                                       FontFamily="Menlo, Monaco, Consolas, monospace"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Name}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding Affiliation}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Opacity="0.85" />
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding Place}"
+                                                       FontFamily="Menlo, Monaco, Consolas, monospace"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="4"
+                                                       Text="{Binding LapsRemaining}"
+                                                       FontFamily="Menlo, Monaco, Consolas, monospace"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="5"
+                                                       Text="{Binding Split}"
+                                                       FontFamily="Menlo, Monaco, Consolas, monospace"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="6"
+                                                       Text="{Binding FinalTime}"
+                                                       FontFamily="Menlo, Monaco, Consolas, monospace"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="7"
+                                                       Text="{Binding Finished}"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>

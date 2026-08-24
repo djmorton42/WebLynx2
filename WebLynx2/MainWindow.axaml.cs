@@ -20,21 +20,28 @@ namespace WebLynx2;
 
 public partial class MainWindow : Window
 {
+    private const string AllViewsFilterItem = "All";
+
     private bool _portFieldSync;
     private bool _pollingIntervalSync;
     private FinishLynxTcpServer? _tcpServer;
+    private RaceStateManager? _raceStateManager;
     private ILoggerFactory? _raceLogFactory;
+    private readonly DispatcherTimer _raceStateRefreshTimer;
 
     private readonly KeyValueStoreService _keyValueStore = new();
 
     private string? _viewsRootPath;
     private Dictionary<string, List<string>> _propertyLoadSnapshot = new(StringComparer.Ordinal);
+    private readonly List<ViewPropertyRow> _allViewPropertyRows = new();
 
     public ObservableCollection<string> LoadedViews { get; } = new();
 
     public ObservableCollection<ViewPropertyRow> ViewProperties { get; } = new();
 
     public ObservableCollection<string> NetworkAddresses { get; } = new();
+
+    public ObservableCollection<RaceRacerDisplayRow> RaceRacers { get; } = new();
 
     /// <summary>Configuration values merged from <c>view.properties</c> and the properties grid (after Save).</summary>
     public KeyValueStoreService KeyValueStore => _keyValueStore;
@@ -52,6 +59,15 @@ public partial class MainWindow : Window
         RefreshNetworkAddresses();
 
         ResultsPollingIntervalNumericUpDown.Loaded += (_, _) => AttachPollingIntervalInnerTextBox();
+
+        _raceStateRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _raceStateRefreshTimer.Tick += (_, _) => RefreshRaceStateDisplay();
+        _raceStateRefreshTimer.Start();
+
+        ClearRaceStateDisplay();
 
         Closing += MainWindow_OnClosing;
     }
@@ -91,8 +107,13 @@ public partial class MainWindow : Window
         var discovery = new ViewDiscoveryService(root, keyValueStore: _keyValueStore);
         discovery.DiscoverViews();
 
+        var previousSelection = LoadedViewsListBox.SelectedItem as string;
+
         LoadedViews.Clear();
-        foreach (var v in discovery.DiscoveredViews.Where(x => x.IsValid))
+        LoadedViews.Add(AllViewsFilterItem);
+        foreach (var v in discovery.DiscoveredViews
+                     .Where(x => x.IsValid)
+                     .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase))
             LoadedViews.Add(v.Name);
 
         _propertyLoadSnapshot = discovery.LastPropertyCatalog.ToDictionary(
@@ -104,13 +125,49 @@ public partial class MainWindow : Window
             StringComparer.Ordinal);
 
         ApplyViewPropertiesFromCatalog(discovery.LastPropertyCatalog);
+
+        if (previousSelection is not null && LoadedViews.Contains(previousSelection))
+            LoadedViewsListBox.SelectedItem = previousSelection;
+        else
+            LoadedViewsListBox.SelectedItem = AllViewsFilterItem;
+
+        ApplyViewPropertyFilter();
     }
 
     private void ApplyViewPropertiesFromCatalog(IReadOnlyList<DiscoveredViewProperty> catalog)
     {
-        ViewProperties.Clear();
+        _allViewPropertyRows.Clear();
         foreach (var entry in catalog.OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
-            ViewProperties.Add(new ViewPropertyRow(entry.Key, entry.Value, entry.Sources));
+            _allViewPropertyRows.Add(new ViewPropertyRow(entry.Key, entry.Value, entry.Sources));
+    }
+
+    private void LoadedViewsListBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        ApplyViewPropertyFilter();
+
+    private void ApplyViewPropertyFilter()
+    {
+        var selected = LoadedViewsListBox.SelectedItem as string;
+        IEnumerable<ViewPropertyRow> rows = _allViewPropertyRows;
+
+        if (!string.IsNullOrEmpty(selected) &&
+            !string.Equals(selected, AllViewsFilterItem, StringComparison.Ordinal))
+        {
+            rows = _allViewPropertyRows.Where(r => PropertyBelongsToView(r, selected));
+        }
+
+        ViewProperties.Clear();
+        foreach (var row in rows)
+            ViewProperties.Add(row);
+    }
+
+    private bool PropertyBelongsToView(ViewPropertyRow row, string viewName)
+    {
+        if (string.IsNullOrEmpty(_viewsRootPath))
+            return false;
+
+        var viewPropertiesPath = Path.GetFullPath(Path.Combine(_viewsRootPath, viewName, "view.properties"));
+        return row.InitialSources.Any(s =>
+            string.Equals(s.PropertiesFilePath, viewPropertiesPath, StringComparison.OrdinalIgnoreCase));
     }
 
     private async void SaveChanges_OnClick(object? sender, RoutedEventArgs e)
@@ -128,10 +185,10 @@ public partial class MainWindow : Window
                 kv => (IReadOnlyList<string>)kv.Value,
                 StringComparer.Ordinal);
 
-            ViewPropertiesSaveService.Save(_viewsRootPath, ViewProperties.ToList(), snapshot);
+            ViewPropertiesSaveService.Save(_viewsRootPath, _allViewPropertyRows, snapshot);
 
             _keyValueStore.Clear();
-            foreach (var row in ViewProperties)
+            foreach (var row in _allViewPropertyRows)
             {
                 if (string.IsNullOrWhiteSpace(row.Key))
                     continue;
@@ -170,6 +227,7 @@ public partial class MainWindow : Window
         inner.TextInput += PortField_TextInput;
         inner.TextChanged += PollingInterval_TextChanged;
     }
+
 
     private void AttachTcpPortField(TextBox box)
     {
@@ -252,6 +310,7 @@ public partial class MainWindow : Window
         }
     }
 
+
     private async void UnofficialResultsPathBrowse_OnClick(object? sender, RoutedEventArgs e) =>
         await PickFolderIntoTextBoxAsync(UnofficialResultsPathTextBox, "Unofficial results folder");
 
@@ -283,6 +342,8 @@ public partial class MainWindow : Window
 
     private void MainWindow_OnClosing(object? sender, WindowClosingEventArgs e)
     {
+        _raceStateRefreshTimer.Stop();
+
         if (_tcpServer is not null)
         {
             _tcpServer.StopAsync().GetAwaiter().GetResult();
@@ -326,6 +387,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        _raceStateManager = raceState;
         _raceLogFactory = raceLogFactory;
         _tcpServer = server;
         SetServerChromeRunning(true);
@@ -351,9 +413,83 @@ public partial class MainWindow : Window
 
     private void DisposeRaceFeed()
     {
+        _raceStateManager = null;
         _raceLogFactory?.Dispose();
         _raceLogFactory = null;
+        ClearRaceStateDisplay();
     }
+
+    private void RefreshRaceStateDisplay()
+    {
+        if (_raceStateManager is null)
+        {
+            ClearRaceStateDisplay();
+            return;
+        }
+
+        var race = _raceStateManager.GetCurrentRaceState();
+
+        RaceStatusTextBlock.Text = race.Status.ToString();
+        RaceClockTextBlock.Text = RaceTimeFormatter.Format(race.CurrentTime);
+        RaceLastUpdatedTextBlock.Text = race.LastUpdated.ToLocalTime().ToString("HH:mm:ss.fff", CultureInfo.CurrentCulture);
+        RaceEventTextBlock.Text = FormatEventSummary(race.Event);
+        RaceWindTextBlock.Text = string.IsNullOrWhiteSpace(race.Event?.Wind) ? "—" : race.Event.Wind;
+        RaceFeedStatusTextBlock.Text = "Receiving FinishLynx feed";
+        RaceAnnouncementTextBlock.Text = string.IsNullOrWhiteSpace(race.AnnouncementMessage)
+            ? "—"
+            : race.AnnouncementMessage;
+
+        RaceRacers.Clear();
+        foreach (var racer in race.Racers.OrderBy(r => r.Lane))
+        {
+            RaceRacers.Add(new RaceRacerDisplayRow
+            {
+                Lane = racer.Lane.ToString(CultureInfo.InvariantCulture),
+                Name = racer.Name,
+                Affiliation = racer.Affiliation,
+                Place = racer.Place.PlaceText,
+                LapsRemaining = FormatLapsRemaining(racer.LapsRemaining),
+                Split = RaceTimeFormatter.Format(racer.CumulativeSplitTime),
+                FinalTime = RaceTimeFormatter.Format(racer.FinalTime),
+                Finished = racer.HasFinished ? "Yes" : string.Empty
+            });
+        }
+    }
+
+    private void ClearRaceStateDisplay()
+    {
+        RaceStatusTextBlock.Text = "—";
+        RaceClockTextBlock.Text = "—";
+        RaceLastUpdatedTextBlock.Text = "—";
+        RaceEventTextBlock.Text = "—";
+        RaceWindTextBlock.Text = "—";
+        RaceFeedStatusTextBlock.Text = _tcpServer is null
+            ? "Start the server to receive race data"
+            : "Waiting for race data";
+        RaceAnnouncementTextBlock.Text = "—";
+        RaceRacers.Clear();
+    }
+
+    private static string FormatEventSummary(RaceEvent? ev)
+    {
+        if (ev is null)
+            return "—";
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(ev.EventName))
+            parts.Add(ev.EventName);
+        if (!string.IsNullOrWhiteSpace(ev.EventNumber))
+            parts.Add($"#{ev.EventNumber}");
+        if (ev.HeatNumber > 0)
+            parts.Add($"Heat {ev.HeatNumber.ToString(CultureInfo.InvariantCulture)}");
+        if (ev.RoundNumber > 0)
+            parts.Add($"Round {ev.RoundNumber.ToString(CultureInfo.InvariantCulture)}");
+
+        return parts.Count > 0 ? string.Join(" · ", parts) : "—";
+    }
+
+    private static string FormatLapsRemaining(decimal lapsRemaining) =>
+        lapsRemaining == 0 ? string.Empty : lapsRemaining.ToString("0.##", CultureInfo.InvariantCulture);
 
     private void OnTcpChannelStatusFromBackground(TcpChannelKind kind, TcpChannelUiStatus status)
     {
