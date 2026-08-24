@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Microsoft.Extensions.Logging;
 using WebLynx2.Models;
+using WebLynx2.Utilities;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -30,6 +31,8 @@ public partial class MainWindow : Window
 
     public ObservableCollection<ViewPropertyRow> ViewProperties { get; } = new();
 
+    public ObservableCollection<string> NetworkAddresses { get; } = new();
+
     /// <summary>Configuration values merged from <c>view.properties</c> and the properties grid (after Save).</summary>
     public KeyValueStoreService KeyValueStore => _keyValueStore;
 
@@ -43,12 +46,22 @@ public partial class MainWindow : Window
         AttachTcpPortField(HttpPortTextBox);
 
         ApplyAppSettings(AppConfiguration.Load());
+        RefreshNetworkAddresses();
 
         ResultsPollingIntervalNumericUpDown.Loaded += (_, _) => AttachPollingIntervalInnerTextBox();
 
         SyncRemoveViewPropertyButtonEnabled();
 
         Closing += MainWindow_OnClosing;
+    }
+
+    private void RefreshNetworkAddresses()
+    {
+        NetworkAddresses.Clear();
+        foreach (var entry in NetworkAddressHelper.GetLocalIPv4Addresses())
+            NetworkAddresses.Add(entry);
+
+        NoNetworkAddressesTextBlock.IsVisible = NetworkAddresses.Count == 0;
     }
 
     private void ApplyAppSettings(AppSettings settings)

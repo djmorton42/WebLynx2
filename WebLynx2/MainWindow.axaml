@@ -3,11 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="using:WebLynx2"
-        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="720"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="792"
         x:Class="WebLynx2.MainWindow"
         x:DataType="local:MainWindow"
         Title="WebLynx2"
-        Width="1400" Height="720"
+        Width="1400" Height="792"
         MinWidth="820"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
@@ -201,6 +201,23 @@
                                     Click="StopServerButton_OnClick" />
                         </StackPanel>
                     </Grid>
+
+                    <TextBlock Text="Network Addresses"
+                               FontWeight="SemiBold"
+                               Margin="0,8,0,4" />
+                    <ItemsControl ItemsSource="{Binding NetworkAddresses}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           FontFamily="Menlo, Monaco, Consolas, monospace"
+                                           Margin="0,0,0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="NoNetworkAddressesTextBlock"
+                               Text="No active network adapters found."
+                               Opacity="0.75"
+                               IsVisible="False" />
 
                     <TextBlock Text="Status"
                                FontWeight="SemiBold"
