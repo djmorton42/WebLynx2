@@ -372,7 +372,7 @@ public partial class MainWindow : Window
         DisposeRaceFeed();
 
         var raceLogFactory = LoggerFactory.Create(b => b.AddDebug());
-        var raceState = RaceFeedComposition.CreateRaceStateManager(raceLogFactory, new LapCounterSettings());
+        var raceState = RaceFeedComposition.CreateRaceStateManager(raceLogFactory);
 
         var logger = new ReceivedDataFileLogger();
         var server = new FinishLynxTcpServer(logger, raceState, OnTcpChannelStatusFromBackground);

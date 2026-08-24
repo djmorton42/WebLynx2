@@ -8,7 +8,6 @@ public class RaceStateManager
 {
     private readonly ILogger<RaceStateManager> _logger;
     private readonly MessageParser _messageParser;
-    private readonly LapCounterSettings _lapCounterSettings;
 
     public RaceData CurrentRace { get; private set; } = new();
 
@@ -16,12 +15,10 @@ public class RaceStateManager
 
     public RaceStateManager(
         ILogger<RaceStateManager> logger,
-        MessageParser messageParser,
-        LapCounterSettings lapCounterSettings)
+        MessageParser messageParser)
     {
         _logger = logger;
         _messageParser = messageParser;
-        _lapCounterSettings = lapCounterSettings;
     }
 
     public void ProcessMessage(byte[] data, string clientInfo)
@@ -260,9 +257,6 @@ public class RaceStateManager
 
     private void HandleHalfLapModeRaceStart()
     {
-        if (!_lapCounterSettings.HalfLapModeEnabled)
-            return;
-
         if (HasHalfLapLaps())
         {
             _logger.LogInformation("Half-lap mode: Half-lap race detected, timing software handles lap counts");
@@ -283,9 +277,6 @@ public class RaceStateManager
 
     private void HandleHalfLapModeFirstCrossing(Racer racer)
     {
-        if (!_lapCounterSettings.HalfLapModeEnabled)
-            return;
-
         if (!HasHalfLapLaps())
             return;
 

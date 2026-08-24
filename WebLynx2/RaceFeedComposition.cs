@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using WebLynx2.Models;
 using WebLynx2.Parsing;
 
 namespace WebLynx2;
@@ -9,7 +8,7 @@ namespace WebLynx2;
 /// </summary>
 public static class RaceFeedComposition
 {
-    public static RaceStateManager CreateRaceStateManager(ILoggerFactory loggerFactory, LapCounterSettings lapCounterSettings)
+    public static RaceStateManager CreateRaceStateManager(ILoggerFactory loggerFactory)
     {
         var lapCount = new LapCountParser(loggerFactory.CreateLogger<LapCountParser>());
         var running = new RunningTimeParser(loggerFactory.CreateLogger<RunningTimeParser>());
@@ -28,7 +27,6 @@ public static class RaceFeedComposition
 
         return new RaceStateManager(
             loggerFactory.CreateLogger<RaceStateManager>(),
-            messageParser,
-            lapCounterSettings);
+            messageParser);
     }
 }
