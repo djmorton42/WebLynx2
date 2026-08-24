@@ -20,6 +20,11 @@ public sealed class EventSettings
     public string FileEncoding { get; set; } = "ISO-8859-1";
 
     public int PollingIntervalSeconds { get; set; } = 1;
+
+    /// <summary>
+    /// Seconds to keep showing the previous lap count after it changes (delayed lap display).
+    /// </summary>
+    public int DelayedDisplaySeconds { get; set; } = 5;
 }
 
 public sealed class ServerSettings

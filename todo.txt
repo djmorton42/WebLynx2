@@ -1,0 +1,15 @@
+WebLynx2 TODOs
+===============
+
+[!] When adding the HTTP race-data API (and serving HTML views), always return
+    halfLapModeEnabled: true in the API response.
+
+    Why: Ported WebLynx views (lap_counter, broadcast overlays, race_summary,
+    etc.) read data.halfLapModeEnabled and fall back to false if missing:
+        const halfLapModeEnabled = data.halfLapModeEnabled || false;
+    Half-lap mode is no longer toggleable in WebLynx2 — it is always on in
+    RaceStateManager. Omitting this field would make views format laps as
+    standard/whole-lap mode and break display for half-lap races.
+
+    Until views/helpers are updated to assume half-lap mode, hardcode
+    HalfLapModeEnabled = true on the race-data DTO for compatibility.

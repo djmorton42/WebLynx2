@@ -24,6 +24,7 @@ public partial class MainWindow : Window
 
     private bool _portFieldSync;
     private bool _pollingIntervalSync;
+    private bool _delayedDisplaySync;
     private FinishLynxTcpServer? _tcpServer;
     private RaceStateManager? _raceStateManager;
     private ILoggerFactory? _raceLogFactory;
@@ -59,6 +60,7 @@ public partial class MainWindow : Window
         RefreshNetworkAddresses();
 
         ResultsPollingIntervalNumericUpDown.Loaded += (_, _) => AttachPollingIntervalInnerTextBox();
+        DelayedDisplaySecondsNumericUpDown.Loaded += (_, _) => AttachDelayedDisplayInnerTextBox();
 
         _raceStateRefreshTimer = new DispatcherTimer
         {
@@ -90,6 +92,7 @@ public partial class MainWindow : Window
         OfficialResultsPathTextBox.Text = ev.OfficialResultsPath;
         SelectFileEncodingComboItem(FileEncodingComboBox, ev.FileEncoding);
         ResultsPollingIntervalNumericUpDown.Value = Math.Clamp(ev.PollingIntervalSeconds, 1, 3600);
+        DelayedDisplaySecondsNumericUpDown.Value = Math.Clamp(ev.DelayedDisplaySeconds, 0, 60);
 
         var srv = settings.Server;
         ResultsPortTextBox.Text = srv.ResultsPort.ToString();
@@ -228,6 +231,18 @@ public partial class MainWindow : Window
         inner.TextChanged += PollingInterval_TextChanged;
     }
 
+    private void AttachDelayedDisplayInnerTextBox()
+    {
+        var inner = DelayedDisplaySecondsNumericUpDown
+            .GetVisualDescendants()
+            .OfType<TextBox>()
+            .FirstOrDefault();
+        if (inner is null)
+            return;
+
+        inner.TextInput += PortField_TextInput;
+        inner.TextChanged += DelayedDisplay_TextChanged;
+    }
 
     private void AttachTcpPortField(TextBox box)
     {
@@ -310,6 +325,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void DelayedDisplay_TextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_delayedDisplaySync || sender is not TextBox box)
+            return;
+
+        var before = box.Text ?? "";
+        var normalized = NormalizeDigitsCapped(before, 60);
+        if (normalized == before)
+            return;
+
+        var caret = box.CaretIndex;
+        _delayedDisplaySync = true;
+        try
+        {
+            box.Text = normalized;
+            box.CaretIndex = caret <= normalized.Length ? caret : normalized.Length;
+        }
+        finally
+        {
+            _delayedDisplaySync = false;
+        }
+    }
 
     private async void UnofficialResultsPathBrowse_OnClick(object? sender, RoutedEventArgs e) =>
         await PickFolderIntoTextBoxAsync(UnofficialResultsPathTextBox, "Unofficial results folder");
@@ -428,6 +465,7 @@ public partial class MainWindow : Window
         }
 
         var race = _raceStateManager.GetCurrentRaceState();
+        var delaySeconds = GetDelayedDisplaySeconds();
 
         RaceStatusTextBlock.Text = race.Status.ToString();
         RaceClockTextBlock.Text = RaceTimeFormatter.Format(race.CurrentTime);
@@ -449,11 +487,21 @@ public partial class MainWindow : Window
                 Affiliation = racer.Affiliation,
                 Place = racer.Place.PlaceText,
                 LapsRemaining = FormatLapsRemaining(racer.LapsRemaining),
+                DelayedLapsRemaining = FormatLapsRemaining(racer.GetDelayedLapsRemaining(delaySeconds)),
                 Split = RaceTimeFormatter.Format(racer.CumulativeSplitTime),
                 FinalTime = RaceTimeFormatter.Format(racer.FinalTime),
                 Finished = racer.HasFinished ? "Yes" : string.Empty
             });
         }
+    }
+
+    private int GetDelayedDisplaySeconds()
+    {
+        var value = DelayedDisplaySecondsNumericUpDown.Value;
+        if (value is null)
+            return 5;
+
+        return (int)Math.Clamp(value.Value, 0, 60);
     }
 
     private void ClearRaceStateDisplay()
