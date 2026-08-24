@@ -469,9 +469,7 @@ public partial class MainWindow : Window
 
         RaceStatusTextBlock.Text = race.Status.ToString();
         RaceClockTextBlock.Text = RaceTimeFormatter.Format(race.CurrentTime);
-        RaceLastUpdatedTextBlock.Text = race.LastUpdated.ToLocalTime().ToString("HH:mm:ss.fff", CultureInfo.CurrentCulture);
         RaceEventTextBlock.Text = FormatEventSummary(race.Event);
-        RaceWindTextBlock.Text = string.IsNullOrWhiteSpace(race.Event?.Wind) ? "—" : race.Event.Wind;
         RaceFeedStatusTextBlock.Text = "Receiving FinishLynx feed";
         RaceAnnouncementTextBlock.Text = string.IsNullOrWhiteSpace(race.AnnouncementMessage)
             ? "—"
@@ -508,9 +506,7 @@ public partial class MainWindow : Window
     {
         RaceStatusTextBlock.Text = "—";
         RaceClockTextBlock.Text = "—";
-        RaceLastUpdatedTextBlock.Text = "—";
         RaceEventTextBlock.Text = "—";
-        RaceWindTextBlock.Text = "—";
         RaceFeedStatusTextBlock.Text = _tcpServer is null
             ? "Start the server to receive race data"
             : "Waiting for race data";

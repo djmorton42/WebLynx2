@@ -411,7 +411,7 @@
                             Padding="14,12">
                         <Grid ColumnDefinitions="Auto,*"
                               ColumnSpacing="16"
-                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                              RowDefinitions="Auto,Auto,Auto,Auto"
                               RowSpacing="8">
                             <TextBlock Grid.Row="0" Grid.Column="0"
                                        Text="Race Status"
@@ -421,37 +421,24 @@
                                        FontFamily="Menlo, Monaco, Consolas, monospace" />
 
                             <TextBlock Grid.Row="1" Grid.Column="0"
-                                       Text="Running Time"
+                                       Text="Clock"
                                        FontWeight="SemiBold" />
                             <TextBlock x:Name="RaceClockTextBlock"
                                        Grid.Row="1" Grid.Column="1"
                                        FontFamily="Menlo, Monaco, Consolas, monospace" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0"
-                                       Text="Last Updated"
-                                       FontWeight="SemiBold" />
-                            <TextBlock x:Name="RaceLastUpdatedTextBlock"
-                                       Grid.Row="2" Grid.Column="1"
-                                       FontFamily="Menlo, Monaco, Consolas, monospace" />
-
-                            <TextBlock Grid.Row="3" Grid.Column="0"
                                        Text="Event"
                                        FontWeight="SemiBold" />
                             <TextBlock x:Name="RaceEventTextBlock"
-                                       Grid.Row="3" Grid.Column="1"
+                                       Grid.Row="2" Grid.Column="1"
                                        TextWrapping="Wrap" />
 
-                            <TextBlock Grid.Row="4" Grid.Column="0"
-                                       Text="Wind"
-                                       FontWeight="SemiBold" />
-                            <TextBlock x:Name="RaceWindTextBlock"
-                                       Grid.Row="4" Grid.Column="1" />
-
-                            <TextBlock Grid.Row="5" Grid.Column="0"
+                            <TextBlock Grid.Row="3" Grid.Column="0"
                                        Text="Feed Status"
                                        FontWeight="SemiBold" />
                             <TextBlock x:Name="RaceFeedStatusTextBlock"
-                                       Grid.Row="5" Grid.Column="1"
+                                       Grid.Row="3" Grid.Column="1"
                                        Opacity="0.85" />
                         </Grid>
                     </Border>
