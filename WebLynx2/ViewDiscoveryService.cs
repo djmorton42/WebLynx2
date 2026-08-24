@@ -14,6 +14,12 @@ public class ViewDiscoveryService
     private readonly string _viewsPath;
     private readonly KeyValueStoreService? _keyValueStore;
     private readonly List<ViewMetadata> _discoveredViews = new();
+    private readonly List<DiscoveredViewProperty> _propertyCatalog = new();
+
+    /// <summary>
+    /// Effective merged properties and the list of <c>view.properties</c> files that define each key.
+    /// </summary>
+    public IReadOnlyList<DiscoveredViewProperty> LastPropertyCatalog => _propertyCatalog;
 
     /// <summary>
     /// Resolves <paramref name="configured"/> as an absolute path: absolute paths are normalized;
@@ -46,17 +52,14 @@ public class ViewDiscoveryService
     public void DiscoverViews()
     {
         _discoveredViews.Clear();
+        _propertyCatalog.Clear();
+        _keyValueStore?.Clear();
 
         if (!Directory.Exists(_viewsPath))
         {
             _logger.LogWarning("Views directory not found: {ViewsPath}", _viewsPath);
             return;
         }
-
-        var keyValueHistory = new Dictionary<string, (string firstSource, string firstValue)>(StringComparer.Ordinal);
-
-        var sharedPropertiesPath = Path.Combine(_viewsPath, "view.properties");
-        LoadPropertiesFile(sharedPropertiesPath, "Views directory (shared)", keyValueHistory);
 
         var viewDirectories = Directory.GetDirectories(_viewsPath)
             .Where(dir => !Path.GetFileName(dir).StartsWith('.'))
@@ -69,10 +72,7 @@ public class ViewDiscoveryService
             _discoveredViews.Add(viewMetadata);
 
             if (viewMetadata.IsValid)
-            {
                 _logger.LogInformation("Discovered valid view: {ViewName}", viewName);
-                LoadViewProperties(viewDirectory, viewName, keyValueHistory);
-            }
             else
             {
                 _logger.LogWarning(
@@ -82,10 +82,110 @@ public class ViewDiscoveryService
             }
         }
 
+        var accum = new Dictionary<string, List<(PropertySource Source, string Value)>>(StringComparer.Ordinal);
+        var keyValueHistory = new Dictionary<string, (string firstSource, string firstValue)>(StringComparer.Ordinal);
+
+        var sharedPropertiesPath = Path.Combine(_viewsPath, "view.properties");
+        MergePropertiesFile(sharedPropertiesPath, "Views directory (shared)", accum, keyValueHistory);
+
+        foreach (var viewDirectory in viewDirectories)
+        {
+            var viewName = Path.GetFileName(viewDirectory);
+            var meta = GetViewMetadata(viewName);
+            if (meta is null || !meta.IsValid)
+                continue;
+
+            MergePropertiesFile(
+                Path.Combine(viewDirectory, "view.properties"),
+                $"view '{viewName}'",
+                accum,
+                keyValueHistory);
+        }
+
+        BuildPropertyCatalog(accum);
+
         _logger.LogInformation(
-            "View discovery completed. Found {ValidCount} valid views out of {TotalCount} directories",
+            "View discovery completed. Found {ValidCount} valid views out of {TotalCount} directories; {PropCount} merged properties.",
             _discoveredViews.Count(v => v.IsValid),
-            _discoveredViews.Count);
+            _discoveredViews.Count,
+            _propertyCatalog.Count);
+    }
+
+    private void BuildPropertyCatalog(Dictionary<string, List<(PropertySource Source, string Value)>> accum)
+    {
+        foreach (var key in accum.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+        {
+            var list = accum[key];
+            var effective = list[^1].Value;
+            var sources = new List<PropertySource>();
+            foreach (var (src, _) in list)
+            {
+                if (sources.All(s =>
+                        !string.Equals(s.PropertiesFilePath, src.PropertiesFilePath, StringComparison.OrdinalIgnoreCase)))
+                    sources.Add(src);
+            }
+
+            _propertyCatalog.Add(new DiscoveredViewProperty
+            {
+                Key = key,
+                Value = effective,
+                Sources = sources
+            });
+
+            _keyValueStore?.SetValue(key, effective);
+        }
+    }
+
+    private void MergePropertiesFile(
+        string propertiesFilePath,
+        string sourceLabel,
+        Dictionary<string, List<(PropertySource Source, string Value)>> accum,
+        Dictionary<string, (string firstSource, string firstValue)> keyValueHistory)
+    {
+        if (!File.Exists(propertiesFilePath))
+            return;
+
+        var map = ViewPropertiesFileParser.ParseFile(propertiesFilePath, _logger);
+        if (map.Count == 0 && File.Exists(propertiesFilePath))
+        {
+            _logger.LogInformation("Loaded view.properties from {Source} (no key=value entries)", sourceLabel);
+            return;
+        }
+
+        var src = new PropertySource(sourceLabel, Path.GetFullPath(propertiesFilePath));
+
+        foreach (var kv in map)
+        {
+            if (keyValueHistory.TryGetValue(kv.Key, out var history))
+            {
+                if (history.firstValue != kv.Value)
+                {
+                    _logger.LogWarning(
+                        "Key-value conflict for key '{Key}': '{FirstSource}' set '{FirstValue}', '{CurrentSource}' set '{CurrentValue}' (using '{CurrentValue}' - last wins)",
+                        kv.Key,
+                        history.firstSource,
+                        history.firstValue,
+                        sourceLabel,
+                        kv.Value,
+                        kv.Value);
+                }
+            }
+            else
+            {
+                keyValueHistory[kv.Key] = (sourceLabel, kv.Value);
+            }
+
+            if (!accum.TryGetValue(kv.Key, out var list))
+            {
+                list = new List<(PropertySource Source, string Value)>();
+                accum[kv.Key] = list;
+            }
+
+            list.Add((src, kv.Value));
+            _logger.LogDebug("Loaded key-value from {Source}: {Key} = {Value}", sourceLabel, kv.Key, kv.Value);
+        }
+
+        _logger.LogInformation("Loaded view.properties from {Source}", sourceLabel);
     }
 
     public ViewMetadata? GetViewMetadata(string viewName) =>
@@ -157,84 +257,6 @@ public class ViewDiscoveryService
         {
             _logger.LogWarning(ex, "Failed to read description file for view {ViewName}", viewName);
             return string.Empty;
-        }
-    }
-
-    private void LoadViewProperties(
-        string viewDirectory,
-        string viewName,
-        Dictionary<string, (string firstSource, string firstValue)> keyValueHistory)
-    {
-        LoadPropertiesFile(Path.Combine(viewDirectory, "view.properties"), $"view '{viewName}'", keyValueHistory);
-    }
-
-    private void LoadPropertiesFile(
-        string propertiesFilePath,
-        string sourceLabel,
-        Dictionary<string, (string firstSource, string firstValue)> keyValueHistory)
-    {
-        if (_keyValueStore is null || !File.Exists(propertiesFilePath))
-            return;
-
-        try
-        {
-            var lines = File.ReadAllLines(propertiesFilePath);
-            foreach (var line in lines)
-            {
-                var trimmedLine = line.Trim();
-                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith('#'))
-                    continue;
-
-                var equalIndex = trimmedLine.IndexOf('=');
-                if (equalIndex <= 0 || equalIndex >= trimmedLine.Length - 1)
-                {
-                    _logger.LogWarning(
-                        "Invalid line format in view.properties ({Source}): {Line}",
-                        sourceLabel,
-                        trimmedLine);
-                    continue;
-                }
-
-                var key = trimmedLine[..equalIndex].Trim();
-                var value = trimmedLine[(equalIndex + 1)..].Trim();
-
-                if (string.IsNullOrEmpty(key))
-                {
-                    _logger.LogWarning(
-                        "Empty key in view.properties ({Source}): {Line}",
-                        sourceLabel,
-                        trimmedLine);
-                    continue;
-                }
-
-                if (keyValueHistory.TryGetValue(key, out var history))
-                {
-                    if (history.firstValue != value)
-                    {
-                        _logger.LogWarning(
-                            "Key-value conflict for key '{Key}': '{FirstSource}' set '{FirstValue}', '{CurrentSource}' set '{CurrentValue}' (using '{CurrentValue}' - last wins)",
-                            key,
-                            history.firstSource,
-                            history.firstValue,
-                            sourceLabel,
-                            value,
-                            value);
-                    }
-                }
-                else
-                {
-                    keyValueHistory[key] = (sourceLabel, value);
-                }
-
-                _keyValueStore.SetValue(key, value);
-                _logger.LogDebug("Loaded key-value from {Source}: {Key} = {Value}", sourceLabel, key, value);
-            }
-
-            _logger.LogInformation("Loaded view.properties from {Source}", sourceLabel);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to load view.properties from {Source}", sourceLabel);
         }
     }
 }

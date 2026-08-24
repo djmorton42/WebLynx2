@@ -27,6 +27,9 @@ public partial class MainWindow : Window
 
     private readonly KeyValueStoreService _keyValueStore = new();
 
+    private string? _viewsRootPath;
+    private Dictionary<string, List<string>> _propertyLoadSnapshot = new(StringComparer.Ordinal);
+
     public ObservableCollection<string> LoadedViews { get; } = new();
 
     public ObservableCollection<ViewPropertyRow> ViewProperties { get; } = new();
@@ -49,8 +52,6 @@ public partial class MainWindow : Window
         RefreshNetworkAddresses();
 
         ResultsPollingIntervalNumericUpDown.Loaded += (_, _) => AttachPollingIntervalInnerTextBox();
-
-        SyncRemoveViewPropertyButtonEnabled();
 
         Closing += MainWindow_OnClosing;
     }
@@ -85,6 +86,8 @@ public partial class MainWindow : Window
     private void RefreshDiscoveredViews(ServerSettings server)
     {
         var root = ViewDiscoveryService.ResolveViewsRoot(server.ViewsDirectory);
+        _viewsRootPath = root;
+
         var discovery = new ViewDiscoveryService(root, keyValueStore: _keyValueStore);
         discovery.DiscoverViews();
 
@@ -92,24 +95,54 @@ public partial class MainWindow : Window
         foreach (var v in discovery.DiscoveredViews.Where(x => x.IsValid))
             LoadedViews.Add(v.Name);
 
-        ApplyKeyValueStoreToViewProperties();
+        _propertyLoadSnapshot = discovery.LastPropertyCatalog.ToDictionary(
+            e => e.Key,
+            e => e.Sources
+                .Select(s => s.PropertiesFilePath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            StringComparer.Ordinal);
+
+        ApplyViewPropertiesFromCatalog(discovery.LastPropertyCatalog);
     }
 
-    private void ApplyKeyValueStoreToViewProperties()
+    private void ApplyViewPropertiesFromCatalog(IReadOnlyList<DiscoveredViewProperty> catalog)
     {
         ViewProperties.Clear();
-        foreach (var kv in _keyValueStore.GetAllValues().OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-            ViewProperties.Add(new ViewPropertyRow { Key = kv.Key, Value = kv.Value });
+        foreach (var entry in catalog.OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
+            ViewProperties.Add(new ViewPropertyRow(entry.Key, entry.Value, entry.Sources));
     }
 
-    private void SaveChanges_OnClick(object? sender, RoutedEventArgs e)
+    private async void SaveChanges_OnClick(object? sender, RoutedEventArgs e)
     {
-        _keyValueStore.Clear();
-        foreach (var row in ViewProperties)
+        if (string.IsNullOrEmpty(_viewsRootPath))
         {
-            if (string.IsNullOrWhiteSpace(row.Key))
-                continue;
-            _keyValueStore.SetValue(row.Key.Trim(), row.Value);
+            await ShowErrorDialogAsync("Views directory is not set.");
+            return;
+        }
+
+        try
+        {
+            IReadOnlyDictionary<string, IReadOnlyList<string>> snapshot = _propertyLoadSnapshot.ToDictionary(
+                kv => kv.Key,
+                kv => (IReadOnlyList<string>)kv.Value,
+                StringComparer.Ordinal);
+
+            ViewPropertiesSaveService.Save(_viewsRootPath, ViewProperties.ToList(), snapshot);
+
+            _keyValueStore.Clear();
+            foreach (var row in ViewProperties)
+            {
+                if (string.IsNullOrWhiteSpace(row.Key))
+                    continue;
+                _keyValueStore.SetValue(row.Key.Trim(), row.Value);
+            }
+
+            RefreshDiscoveredViews(AppConfiguration.Load().Server);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorDialogAsync($"Could not save view properties: {ex.Message}");
         }
     }
 
@@ -123,40 +156,6 @@ public partial class MainWindow : Window
                 return;
             }
         }
-    }
-
-    private void ViewPropertiesListBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
-        SyncRemoveViewPropertyButtonEnabled();
-
-    private void SyncRemoveViewPropertyButtonEnabled() =>
-        RemoveViewPropertyButton.IsEnabled = ViewPropertiesListBox.SelectedItem is ViewPropertyRow;
-
-    private void ViewPropertyKeyTextBox_OnKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Tab || e.KeyModifiers.HasFlag(KeyModifiers.Shift))
-            return;
-
-        if (sender is not TextBox keyBox)
-            return;
-
-        if (keyBox.Parent is not Grid grid)
-            return;
-
-        TextBox? valueBox = null;
-        foreach (var child in grid.Children)
-        {
-            if (child is TextBox tb && Grid.GetColumn(tb) == 1)
-            {
-                valueBox = tb;
-                break;
-            }
-        }
-
-        if (valueBox is null)
-            return;
-
-        e.Handled = true;
-        valueBox.Focus();
     }
 
     private void AttachPollingIntervalInnerTextBox()
@@ -278,18 +277,6 @@ public partial class MainWindow : Window
         var path = folders[0].TryGetLocalPath();
         if (!string.IsNullOrEmpty(path))
             target.Text = path;
-    }
-
-    private void AddViewProperty_OnClick(object? sender, RoutedEventArgs e) =>
-        ViewProperties.Add(new ViewPropertyRow());
-
-    private void RemoveSelectedViewProperty_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (ViewPropertiesListBox.SelectedItem is not ViewPropertyRow row)
-            return;
-
-        ViewProperties.Remove(row);
-        SyncRemoveViewPropertyButtonEnabled();
     }
 
     private void ExitButton_OnClick(object? sender, RoutedEventArgs e) => Close();
