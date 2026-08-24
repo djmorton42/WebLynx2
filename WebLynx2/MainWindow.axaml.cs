@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Microsoft.Extensions.Logging;
+using WebLynx2.Api;
 using WebLynx2.Models;
 using WebLynx2.Utilities;
 using Avalonia.Controls;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     private bool _pollingIntervalSync;
     private bool _delayedDisplaySync;
     private FinishLynxTcpServer? _tcpServer;
+    private RaceHttpServer? _httpServer;
     private RaceStateManager? _raceStateManager;
     private ILoggerFactory? _raceLogFactory;
     private readonly DispatcherTimer _raceStateRefreshTimer;
@@ -387,6 +389,12 @@ public partial class MainWindow : Window
             _tcpServer = null;
         }
 
+        if (_httpServer is not null)
+        {
+            _httpServer.StopAsync().GetAwaiter().GetResult();
+            _httpServer = null;
+        }
+
         DisposeRaceFeed();
     }
 
@@ -394,7 +402,7 @@ public partial class MainWindow : Window
     {
         if (!TryParsePort(ResultsPortTextBox.Text, out var resultsPort) ||
             !TryParsePort(ClockPortTextBox.Text, out var clockPort) ||
-            !TryParsePort(HttpPortTextBox.Text, out _))
+            !TryParsePort(HttpPortTextBox.Text, out var httpPort))
         {
             await ShowErrorDialogAsync("Enter valid port numbers from 1 to 65535 for all three fields.");
             return;
@@ -424,10 +432,30 @@ public partial class MainWindow : Window
             return;
         }
 
+        var httpServer = new RaceHttpServer(
+            raceLogFactory.CreateLogger<RaceHttpServer>(),
+            raceState,
+            _keyValueStore,
+            GetDelayedDisplaySeconds());
+
+        try
+        {
+            await httpServer.StartAsync(httpPort);
+        }
+        catch (Exception ex)
+        {
+            await server.StopAsync();
+            raceLogFactory.Dispose();
+            await ShowErrorDialogAsync($"Could not start HTTP server: {ex.Message}");
+            return;
+        }
+
         _raceStateManager = raceState;
         _raceLogFactory = raceLogFactory;
         _tcpServer = server;
+        _httpServer = httpServer;
         SetServerChromeRunning(true);
+        ApplyHttpStatus(listening: true);
     }
 
     private async void StopServerButton_OnClick(object? sender, RoutedEventArgs e)
@@ -438,12 +466,17 @@ public partial class MainWindow : Window
         StopServerButton.IsEnabled = false;
         try
         {
+            if (_httpServer is not null)
+                await _httpServer.StopAsync();
+
             await _tcpServer.StopAsync();
         }
         finally
         {
+            _httpServer = null;
             _tcpServer = null;
             SetServerChromeRunning(false);
+            ApplyHttpStatus(listening: false);
             DisposeRaceFeed();
         }
     }
@@ -575,6 +608,18 @@ public partial class MainWindow : Window
         ResultsPortTextBox.IsEnabled = !running;
         ClockPortTextBox.IsEnabled = !running;
         HttpPortTextBox.IsEnabled = !running;
+    }
+
+    private void ApplyHttpStatus(bool listening)
+    {
+        HttpStatusTextBlock.Text = listening ? "Listening" : "Not Listening";
+        ApplyStatusBadgeBrush(HttpStatusBadge, listening ? "StatusListeningBrush" : "StatusNotListeningBrush");
+    }
+
+    private static void ApplyStatusBadgeBrush(Border border, string resourceKey)
+    {
+        if (border.TryFindResource(resourceKey, out var res) && res is IBrush brush)
+            border.Background = brush;
     }
 
     private static bool TryParsePort(string? text, out int port)
