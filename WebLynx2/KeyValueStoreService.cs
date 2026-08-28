@@ -20,6 +20,12 @@ public class KeyValueStoreService
             _store.AddOrUpdate(key, value, (_, _) => value);
     }
 
+    /// <summary>
+    /// Sets a key-value pair, keeping empty strings (unlike <see cref="SetValue"/>).
+    /// </summary>
+    public void Put(string key, string value) =>
+        _store.AddOrUpdate(key, value, (_, _) => value);
+
     public string? GetValue(string key) =>
         _store.TryGetValue(key, out var value) ? value : null;
 
