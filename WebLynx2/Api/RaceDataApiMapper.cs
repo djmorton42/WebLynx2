@@ -17,6 +17,7 @@ public class RaceDataApiMapper(KeyValueStoreService keyValueStore, int delayedDi
             AnnouncementMessage = raceData.AnnouncementMessage,
             HalfLapModeEnabled = true,
             KeyValues = keyValueStore.GetAllValues(),
+            ViewConfig = ViewConfigBuilder.FromFlatKeyValues(keyValueStore.GetAllValues()),
             Racers = sortedRacers.Select(MapRacer).ToList()
         };
     }

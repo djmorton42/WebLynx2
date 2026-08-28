@@ -54,6 +54,8 @@ public sealed class RaceHttpServerFixture : IAsyncLifetime
 
         KeyValueStore.SetValue("customKey1", "customValue1");
         KeyValueStore.SetValue("customKey2", "customValue2");
+        KeyValueStore.SetValue("laneColors.1", "#ffff00");
+        KeyValueStore.SetValue("updateInterval", "250");
     }
 
     private static RaceStateManager CreateRaceStateManager()

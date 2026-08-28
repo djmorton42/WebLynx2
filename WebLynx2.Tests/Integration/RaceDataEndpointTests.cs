@@ -101,6 +101,20 @@ public class RaceDataEndpointTests(RaceHttpServerFixture fixture)
     }
 
     [Fact]
+    public async Task GetRaceData_IncludesNestedViewConfig()
+    {
+        using var client = fixture.CreateClient();
+
+        var response = await client.GetAsync("api/race/race-data");
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+
+        var viewConfig = document.RootElement.GetProperty("viewConfig");
+        Assert.Equal(250, viewConfig.GetProperty("updateInterval").GetInt32());
+        Assert.Equal("#ffff00", viewConfig.GetProperty("laneColors").GetProperty("1").GetString());
+    }
+
+    [Fact]
     public async Task UnknownRoute_Returns404()
     {
         using var client = fixture.CreateClient();

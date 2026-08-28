@@ -42,6 +42,20 @@ public class RaceDataApiMapperTests
     }
 
     [Fact]
+    public void Map_IncludesNestedViewConfigFromFlatKeys()
+    {
+        _keyValueStore.SetValue("laneColors.1", "#ffff00");
+        _keyValueStore.SetValue("updateInterval", "250");
+
+        var response = _mapper.Map(new RaceData(), "place");
+
+        Assert.Equal(250, response.ViewConfig["updateInterval"]);
+        var laneColors = Assert.IsType<Dictionary<string, object>>(response.ViewConfig["laneColors"]);
+        Assert.Equal("#ffff00", laneColors["1"]);
+        Assert.Equal("#ffff00", response.KeyValues["laneColors.1"]);
+    }
+
+    [Fact]
     public void Map_HalfLapModeEnabled_AlwaysTrue()
     {
         var response = _mapper.Map(new RaceData(), "place");

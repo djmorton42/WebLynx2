@@ -12,6 +12,11 @@ public class RaceDataApiResponse
     public string? AnnouncementMessage { get; set; }
     public bool HalfLapModeEnabled { get; set; }
     public Dictionary<string, string> KeyValues { get; set; } = new();
+    /// <summary>
+    /// Nested view configuration expanded from <see cref="KeyValues"/> (dot-notation → objects).
+    /// Same shape as legacy injected VIEW_CONFIG for ported HTML views.
+    /// </summary>
+    public Dictionary<string, object> ViewConfig { get; set; } = new();
 }
 
 public class RacerApiResponse

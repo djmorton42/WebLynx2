@@ -20,6 +20,7 @@ public class RaceDataJsonSerializationTests
         Assert.Contains("\"halfLapModeEnabled\"", json);
         Assert.Contains("\"placeText\"", json);
         Assert.Contains("\"keyValues\"", json);
+        Assert.Contains("\"viewConfig\"", json);
     }
 
     [Fact]
@@ -53,6 +54,21 @@ public class RaceDataJsonSerializationTests
         var json = JsonSerializer.Serialize(response, SerializerOptions);
 
         Assert.Contains("\"lapsRemaining\":8.5", json.Replace(" ", ""));
+    }
+
+    [Fact]
+    public void ViewConfig_SerializesNestedObjectsAndNumbers()
+    {
+        var store = new KeyValueStoreService();
+        store.SetValue("laneColors.1", "#ffff00");
+        store.SetValue("updateInterval", "250");
+        var mapper = new RaceDataApiMapper(store, delayedDisplaySeconds: 5);
+
+        var json = JsonSerializer.Serialize(mapper.Map(RaceTestDataFactory.CreateSampleRace(), "place"), SerializerOptions);
+
+        Assert.Contains("\"viewConfig\"", json);
+        Assert.Contains("\"laneColors\"", json);
+        Assert.Contains("\"updateInterval\":250", json.Replace(" ", ""));
     }
 
     private static RaceDataApiResponse CreateSampleResponse()
