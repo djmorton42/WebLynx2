@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using WebLynx2.Models;
+using WebLynx2.UnofficialResults;
 
 namespace WebLynx2.Api;
 
@@ -11,12 +12,14 @@ public sealed class RaceHttpServer(
     RaceStateManager raceState,
     KeyValueStoreService keyValueStore,
     int delayedDisplaySeconds,
-    string? viewsRootPath = null) : IAsyncDisposable
+    string? viewsRootPath = null,
+    UnofficialResultsCatalog? unofficialResults = null) : IAsyncDisposable
 {
     private readonly RaceDataApiMapper _mapper = new(keyValueStore, delayedDisplaySeconds);
     private readonly string? _viewsRoot = string.IsNullOrWhiteSpace(viewsRootPath)
         ? null
         : Path.GetFullPath(viewsRootPath);
+    private readonly UnofficialResultsCatalog? _unofficialResults = unofficialResults;
     private readonly object _gate = new();
 
     private HttpListener? _listener;
@@ -189,6 +192,9 @@ public sealed class RaceHttpServer(
                 return;
             }
 
+            if (await TryServeUnofficialResultsAsync(path, context.Response).ConfigureAwait(false))
+                return;
+
             if (await TryServeViewsAsync(path, context.Response).ConfigureAwait(false))
                 return;
 
@@ -198,6 +204,77 @@ public sealed class RaceHttpServer(
         {
             logger.LogError(ex, "Error handling HTTP request");
             await WriteInternalServerErrorAsync(context.Response).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<bool> TryServeUnofficialResultsAsync(string path, HttpListenerResponse response)
+    {
+        if (!path.StartsWith("/api/unofficial_results", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (_unofficialResults is null)
+        {
+            await WritePlainAsync(response, "Unofficial results are not available", HttpStatusCode.NotFound)
+                .ConfigureAwait(false);
+            return true;
+        }
+
+        try
+        {
+            if (path.Equals("/api/unofficial_results/latest", StringComparison.OrdinalIgnoreCase))
+            {
+                var latest = _unofficialResults.GetLatestRace();
+                if (latest is null)
+                {
+                    await WritePlainAsync(response, "No unofficial race results available", HttpStatusCode.NotFound)
+                        .ConfigureAwait(false);
+                    return true;
+                }
+
+                await WriteJsonAsync(response, latest, HttpStatusCode.OK).ConfigureAwait(false);
+                return true;
+            }
+
+            if (path.Equals("/api/unofficial_results/info", StringComparison.OrdinalIgnoreCase))
+            {
+                await WriteJsonAsync(response, _unofficialResults.GetAllRaceInfo(), HttpStatusCode.OK)
+                    .ConfigureAwait(false);
+                return true;
+            }
+
+            const string racePrefix = "/api/unofficial_results/race/";
+            if (path.StartsWith(racePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var raceNumber = Uri.UnescapeDataString(path[racePrefix.Length..]);
+                if (string.IsNullOrWhiteSpace(raceNumber))
+                {
+                    await WriteNotFoundAsync(response).ConfigureAwait(false);
+                    return true;
+                }
+
+                var race = _unofficialResults.GetRaceByNumber(raceNumber);
+                if (race is null)
+                {
+                    await WritePlainAsync(
+                            response,
+                            $"No unofficial results found for race {raceNumber}",
+                            HttpStatusCode.NotFound)
+                        .ConfigureAwait(false);
+                    return true;
+                }
+
+                await WriteJsonAsync(response, race, HttpStatusCode.OK).ConfigureAwait(false);
+                return true;
+            }
+
+            await WriteNotFoundAsync(response).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error serving unofficial results");
+            await WriteInternalServerErrorAsync(response).ConfigureAwait(false);
+            return true;
         }
     }
 
@@ -491,6 +568,9 @@ public sealed class RaceHttpServer(
             response.Close();
         }
     }
+
+    private static Task WritePlainAsync(HttpListenerResponse response, string message, HttpStatusCode statusCode) =>
+        WriteTextAsync(response, message, "text/plain; charset=utf-8", statusCode);
 
     private static Task WriteNotFoundAsync(HttpListenerResponse response)
     {
