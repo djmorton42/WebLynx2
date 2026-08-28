@@ -2,12 +2,14 @@ using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Microsoft.Extensions.Logging;
 using WebLynx2.Api;
 using WebLynx2.Models;
 using WebLynx2.Utilities;
+using WebLynx2.UnofficialResults;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -28,6 +30,7 @@ public partial class MainWindow : Window
     private bool _delayedDisplaySync;
     private FinishLynxTcpServer? _tcpServer;
     private RaceHttpServer? _httpServer;
+    private UnofficialResultsPoller? _unofficialResultsPoller;
     private RaceStateManager? _raceStateManager;
     private ILoggerFactory? _raceLogFactory;
     private readonly DispatcherTimer _raceStateRefreshTimer;
@@ -410,6 +413,12 @@ public partial class MainWindow : Window
             _httpServer = null;
         }
 
+        if (_unofficialResultsPoller is not null)
+        {
+            _unofficialResultsPoller.StopAsync().GetAwaiter().GetResult();
+            _unofficialResultsPoller = null;
+        }
+
         DisposeRaceFeed();
     }
 
@@ -447,12 +456,22 @@ public partial class MainWindow : Window
             return;
         }
 
+        var unofficialCatalog = new UnofficialResultsCatalog(
+            raceLogFactory.CreateLogger("UnofficialResultsCatalog"))
+        {
+            FileEncoding = ResolveFileEncoding()
+        };
+        var unofficialPoller = new UnofficialResultsPoller(
+            unofficialCatalog,
+            raceLogFactory.CreateLogger("UnofficialResultsPoller"));
+
         var httpServer = new RaceHttpServer(
             raceLogFactory.CreateLogger<RaceHttpServer>(),
             raceState,
             _keyValueStore,
             GetDelayedDisplaySeconds(),
-            viewsRootPath: _viewsRootPath);
+            viewsRootPath: _viewsRootPath,
+            unofficialResults: unofficialCatalog);
 
         try
         {
@@ -466,10 +485,17 @@ public partial class MainWindow : Window
             return;
         }
 
+        var unofficialPath = (UnofficialResultsPathTextBox.Text ?? "").Trim();
+        if (!string.IsNullOrEmpty(unofficialPath))
+        {
+            unofficialPoller.Start(unofficialPath, TimeSpan.FromSeconds(GetResultsPollingIntervalSeconds()));
+        }
+
         _raceStateManager = raceState;
         _raceLogFactory = raceLogFactory;
         _tcpServer = server;
         _httpServer = httpServer;
+        _unofficialResultsPoller = unofficialPoller;
         SetServerChromeRunning(true);
         ApplyHttpStatus(listening: true);
     }
@@ -482,6 +508,9 @@ public partial class MainWindow : Window
         StopServerButton.IsEnabled = false;
         try
         {
+            if (_unofficialResultsPoller is not null)
+                await _unofficialResultsPoller.StopAsync();
+
             if (_httpServer is not null)
                 await _httpServer.StopAsync();
 
@@ -489,6 +518,7 @@ public partial class MainWindow : Window
         }
         finally
         {
+            _unofficialResultsPoller = null;
             _httpServer = null;
             _tcpServer = null;
             SetServerChromeRunning(false);
@@ -549,6 +579,30 @@ public partial class MainWindow : Window
             return 5;
 
         return (int)Math.Clamp(value.Value, 0, 60);
+    }
+
+    private int GetResultsPollingIntervalSeconds()
+    {
+        var value = ResultsPollingIntervalNumericUpDown.Value;
+        if (value is null)
+            return 1;
+
+        return (int)Math.Clamp(value.Value, 1, 3600);
+    }
+
+    private Encoding ResolveFileEncoding()
+    {
+        var name = (FileEncodingComboBox.SelectedItem as ComboBoxItem)?.Content as string
+                   ?? FileEncodingComboBox.SelectedItem?.ToString()
+                   ?? "ISO-8859-1";
+        try
+        {
+            return Encoding.GetEncoding(name);
+        }
+        catch (ArgumentException)
+        {
+            return Encoding.Latin1;
+        }
     }
 
     private void ClearRaceStateDisplay()

@@ -26,12 +26,11 @@ Done in ../WebLynx2-Sso-View-Package:
 
 Still outstanding for views / APIs
 ----------------------------------
-[ ] Implement unofficial results API so unofficial_results view works end-to-end:
+[x] Implement unofficial results API so unofficial_results view works end-to-end:
       GET /api/unofficial_results/latest
       GET /api/unofficial_results/info
       GET /api/unofficial_results/race/{raceNumber}
-    View already consumes those shapes and loads cycle settings from
-    viewConfig.num_races_to_cycle / cycle_interval_seconds.
+    Catalog polls configured Unofficial Results Path for *.lif files.
 
 [ ] Optional: unofficialResultsText in view.properties (broadcast_results
     banner); defaults to "Unofficial Results" in HTML today.
