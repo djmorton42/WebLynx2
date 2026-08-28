@@ -554,21 +554,39 @@ public partial class MainWindow : Window
             ? "—"
             : race.AnnouncementMessage;
 
-        RaceRacers.Clear();
-        foreach (var racer in race.Racers.OrderBy(r => r.Lane))
+        // Update rows in place — Clear()+Add every 100ms was thrashing Avalonia bindings
+        // while the HTTP server also served 100ms race-data polls (original WebLynx has no UI grid).
+        var ordered = race.Racers.OrderBy(r => r.Lane).ToList();
+        while (RaceRacers.Count > ordered.Count)
+            RaceRacers.RemoveAt(RaceRacers.Count - 1);
+
+        for (var i = 0; i < ordered.Count; i++)
         {
-            RaceRacers.Add(new RaceRacerDisplayRow
+            var racer = ordered[i];
+            var lane = racer.Lane.ToString(CultureInfo.InvariantCulture);
+            var name = racer.Name;
+            var affiliation = racer.Affiliation;
+            var place = racer.Place.PlaceText;
+            var lapsRemaining = FormatLapsRemaining(racer.LapsRemaining);
+            var delayedLapsRemaining = FormatLapsRemaining(racer.GetDelayedLapsRemaining(delaySeconds));
+            var split = RaceTimeFormatter.Format(racer.CumulativeSplitTime);
+            var finalTime = RaceTimeFormatter.Format(racer.FinalTime);
+            var finished = racer.HasFinished ? "Yes" : string.Empty;
+
+            if (i < RaceRacers.Count)
             {
-                Lane = racer.Lane.ToString(CultureInfo.InvariantCulture),
-                Name = racer.Name,
-                Affiliation = racer.Affiliation,
-                Place = racer.Place.PlaceText,
-                LapsRemaining = FormatLapsRemaining(racer.LapsRemaining),
-                DelayedLapsRemaining = FormatLapsRemaining(racer.GetDelayedLapsRemaining(delaySeconds)),
-                Split = RaceTimeFormatter.Format(racer.CumulativeSplitTime),
-                FinalTime = RaceTimeFormatter.Format(racer.FinalTime),
-                Finished = racer.HasFinished ? "Yes" : string.Empty
-            });
+                RaceRacers[i].Apply(
+                    lane, name, affiliation, place,
+                    lapsRemaining, delayedLapsRemaining, split, finalTime, finished);
+            }
+            else
+            {
+                var row = new RaceRacerDisplayRow();
+                row.Apply(
+                    lane, name, affiliation, place,
+                    lapsRemaining, delayedLapsRemaining, split, finalTime, finished);
+                RaceRacers.Add(row);
+            }
         }
     }
 

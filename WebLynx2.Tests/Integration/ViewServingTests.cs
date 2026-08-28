@@ -85,6 +85,7 @@ public class ViewServingTests : IAsyncLifetime, IDisposable
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
     }
 
     [Fact]

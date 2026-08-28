@@ -4,9 +4,15 @@ namespace WebLynx2.Api;
 
 public class RaceDataApiMapper(KeyValueStoreService keyValueStore, int delayedDisplaySeconds)
 {
+    private readonly object _viewConfigGate = new();
+    private long _cachedViewConfigVersion = -1;
+    private Dictionary<string, string> _cachedKeyValues = new();
+    private Dictionary<string, object> _cachedViewConfig = new();
+
     public RaceDataApiResponse Map(RaceData raceData, string sortBy)
     {
         var sortedRacers = RacerSorter.Sort(raceData.Racers, sortBy);
+        var (keyValues, viewConfig) = GetKeyValuesAndViewConfig();
 
         return new RaceDataApiResponse
         {
@@ -16,10 +22,26 @@ public class RaceDataApiMapper(KeyValueStoreService keyValueStore, int delayedDi
             LastUpdated = raceData.LastUpdated,
             AnnouncementMessage = raceData.AnnouncementMessage,
             HalfLapModeEnabled = true,
-            KeyValues = keyValueStore.GetAllValues(),
-            ViewConfig = ViewConfigBuilder.FromFlatKeyValues(keyValueStore.GetAllValues()),
+            KeyValues = keyValues,
+            ViewConfig = viewConfig,
             Racers = sortedRacers.Select(MapRacer).ToList()
         };
+    }
+
+    private (Dictionary<string, string> KeyValues, Dictionary<string, object> ViewConfig) GetKeyValuesAndViewConfig()
+    {
+        var version = keyValueStore.Version;
+        lock (_viewConfigGate)
+        {
+            if (version == _cachedViewConfigVersion)
+                return (_cachedKeyValues, _cachedViewConfig);
+
+            var keyValues = keyValueStore.GetAllValues();
+            _cachedKeyValues = keyValues;
+            _cachedViewConfig = ViewConfigBuilder.FromFlatKeyValues(keyValues);
+            _cachedViewConfigVersion = version;
+            return (_cachedKeyValues, _cachedViewConfig);
+        }
     }
 
     private RacerApiResponse MapRacer(Racer racer) =>

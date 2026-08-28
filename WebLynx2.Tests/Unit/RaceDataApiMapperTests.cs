@@ -56,6 +56,24 @@ public class RaceDataApiMapperTests
     }
 
     [Fact]
+    public void Map_ReusesCachedViewConfigUntilStoreChanges()
+    {
+        _keyValueStore.SetValue("updateInterval", "100");
+
+        var first = _mapper.Map(new RaceData(), "place");
+        var second = _mapper.Map(new RaceData(), "place");
+
+        Assert.Same(first.ViewConfig, second.ViewConfig);
+        Assert.Same(first.KeyValues, second.KeyValues);
+
+        _keyValueStore.SetValue("updateInterval", "50");
+        var third = _mapper.Map(new RaceData(), "place");
+
+        Assert.NotSame(first.ViewConfig, third.ViewConfig);
+        Assert.Equal(50, third.ViewConfig["updateInterval"]);
+    }
+
+    [Fact]
     public void Map_HalfLapModeEnabled_AlwaysTrue()
     {
         var response = _mapper.Map(new RaceData(), "place");

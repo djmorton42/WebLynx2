@@ -491,6 +491,8 @@ public sealed class RaceHttpServer(
         response.StatusCode = (int)HttpStatusCode.OK;
         response.ContentType = GetContentType(filePath);
         response.ContentLength64 = bytes.Length;
+        // Views/helpers change often during meet setup; avoid sticky browser/OBS caches.
+        response.Headers["Cache-Control"] = "no-cache";
 
         try
         {
