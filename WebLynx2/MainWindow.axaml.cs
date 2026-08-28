@@ -61,6 +61,9 @@ public partial class MainWindow : Window
         ApplyAppSettings(AppConfiguration.Load());
         RefreshNetworkAddresses();
 
+        EventTitleTextBox.TextChanged += EventIdentity_TextChanged;
+        EventSubtitleTextBox.TextChanged += EventIdentity_TextChanged;
+
         ResultsPollingIntervalNumericUpDown.Loaded += (_, _) => AttachPollingIntervalInnerTextBox();
         DelayedDisplaySecondsNumericUpDown.Loaded += (_, _) => AttachDelayedDisplayInnerTextBox();
 
@@ -137,7 +140,18 @@ public partial class MainWindow : Window
             LoadedViewsListBox.SelectedItem = AllViewsFilterItem;
 
         ApplyViewPropertyFilter();
+        SyncEventIdentityToKeyValueStore();
     }
+
+    private void EventIdentity_TextChanged(object? sender, TextChangedEventArgs e) =>
+        SyncEventIdentityToKeyValueStore();
+
+    /// <summary>
+    /// Publishes Event Title / Subtitle into the key-value store so race-data
+    /// <c>keyValues</c> / <c>viewConfig</c> include <c>meetTitle</c> and <c>eventSubtitle</c>.
+    /// </summary>
+    private void SyncEventIdentityToKeyValueStore() =>
+        EventIdentityConfig.ApplyTo(_keyValueStore, EventTitleTextBox.Text, EventSubtitleTextBox.Text);
 
     private void ApplyViewPropertiesFromCatalog(IReadOnlyList<DiscoveredViewProperty> catalog)
     {
@@ -200,6 +214,7 @@ public partial class MainWindow : Window
                 _keyValueStore.SetValue(row.Key.Trim(), row.Value);
             }
 
+            SyncEventIdentityToKeyValueStore();
             RefreshDiscoveredViews(AppConfiguration.Load().Server);
         }
         catch (Exception ex)
@@ -436,7 +451,8 @@ public partial class MainWindow : Window
             raceLogFactory.CreateLogger<RaceHttpServer>(),
             raceState,
             _keyValueStore,
-            GetDelayedDisplaySeconds());
+            GetDelayedDisplaySeconds(),
+            viewsRootPath: _viewsRootPath);
 
         try
         {

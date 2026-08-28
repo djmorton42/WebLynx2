@@ -13,3 +13,28 @@ WebLynx2 TODOs
 
     Until views/helpers are updated to assume half-lap mode, hardcode
     HalfLapModeEnabled = true on the race-data DTO for compatibility.
+
+-------------------------------------------------------------------------------
+[x] Port SSO view package off VIEW_CONFIG onto API viewConfig
+-------------------------------------------------------------------------------
+
+Done in ../WebLynx2-Sso-View-Package:
+  - shared/weblynx-helpers.js reads data.viewConfig / keyValues
+  - templates use WebLynx.getLaneColor, applyMeetIdentity, etc.
+  - meetTitle / eventSubtitle from Event Title / Subtitle UI via API
+  - WebLynx2 appsettings Server.ViewsDirectory points at the package
+
+Still outstanding for views / APIs
+----------------------------------
+[ ] Implement unofficial results API so unofficial_results view works end-to-end:
+      GET /api/unofficial_results/latest
+      GET /api/unofficial_results/info
+      GET /api/unofficial_results/race/{raceNumber}
+    View already consumes those shapes and loads cycle settings from
+    viewConfig.num_races_to_cycle / cycle_interval_seconds.
+
+[ ] Optional: unofficialResultsText in view.properties (broadcast_results
+    banner); defaults to "Unofficial Results" in HTML today.
+
+[ ] Consider removing the bundled WebLynx2/Views/ copy once packaging always
+    uses the external SSO view package.
