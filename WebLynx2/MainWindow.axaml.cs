@@ -202,6 +202,8 @@ public partial class MainWindow : Window
 
         try
         {
+            AppConfiguration.Save(BuildAppSettingsFromUi());
+
             IReadOnlyDictionary<string, IReadOnlyList<string>> snapshot = _propertyLoadSnapshot.ToDictionary(
                 kv => kv.Key,
                 kv => (IReadOnlyList<string>)kv.Value,
@@ -222,8 +224,45 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            await ShowErrorDialogAsync($"Could not save view properties: {ex.Message}");
+            await ShowErrorDialogAsync($"Could not save changes: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Builds appsettings from the Event / Server UI so paths and other fields persist across restarts.
+    /// </summary>
+    private AppSettings BuildAppSettingsFromUi()
+    {
+        var existing = AppConfiguration.Load();
+
+        return new AppSettings
+        {
+            Event = new EventSettings
+            {
+                Title = EventTitleTextBox.Text ?? "",
+                Subtitle = EventSubtitleTextBox.Text ?? "",
+                UnofficialResultsPath = (UnofficialResultsPathTextBox.Text ?? "").Trim(),
+                OfficialResultsPath = (OfficialResultsPathTextBox.Text ?? "").Trim(),
+                FileEncoding = (FileEncodingComboBox.SelectedItem as ComboBoxItem)?.Content as string
+                    ?? FileEncodingComboBox.SelectedItem?.ToString()
+                    ?? existing.Event.FileEncoding,
+                PollingIntervalSeconds = GetResultsPollingIntervalSeconds(),
+                DelayedDisplaySeconds = GetDelayedDisplaySeconds()
+            },
+            Server = new ServerSettings
+            {
+                ResultsPort = TryParsePort(ResultsPortTextBox.Text, out var resultsPort)
+                    ? resultsPort
+                    : existing.Server.ResultsPort,
+                ClockPort = TryParsePort(ClockPortTextBox.Text, out var clockPort)
+                    ? clockPort
+                    : existing.Server.ClockPort,
+                HttpPort = TryParsePort(HttpPortTextBox.Text, out var httpPort)
+                    ? httpPort
+                    : existing.Server.HttpPort,
+                ViewsDirectory = existing.Server.ViewsDirectory
+            }
+        };
     }
 
     private static void SelectFileEncodingComboItem(ComboBox combo, string encodingName)
