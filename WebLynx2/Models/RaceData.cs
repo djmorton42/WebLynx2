@@ -177,7 +177,6 @@ public enum RaceStatus
 {
     NotStarted,
     Running,
-    Paused,
     Finished
 }
 

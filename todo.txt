@@ -1,39 +1,58 @@
 WebLynx2 TODOs
 ===============
 
-[!] When adding the HTTP race-data API (and serving HTML views), always return
-    halfLapModeEnabled: true in the API response.
+Design decisions (intentional — do not port from WebLynx)
+-----------------------------------------------------------
+- Deprecated views omitted from SSO package: broadcast_race_overlay,
+  broadcast_race_overlay_simple, broadcast_race_overlay_splits, lap_counter.
+  Successor views (splits_bell, lap_counter_with_leader, etc.) cover production use.
+- No web UI for config or key-value editing — Avalonia Configuration tab handles this.
+- Half-lap mode is always on; no toggle in appsettings or UI.
+- No server-side template injection ({{MEET_TITLE}}, {{VIEW_PROPERTIES}}, etc.).
+  Views are dynamic: they poll /api/race/race-data for viewConfig and keyValues.
+- HTTP server is GET-only; no /config, POST test endpoints, or Swagger.
 
-    Why: Ported WebLynx views (lap_counter, broadcast overlays, race_summary,
-    etc.) read data.halfLapModeEnabled and fall back to false if missing:
+Race-data API compatibility
+---------------------------
+[!] Always return halfLapModeEnabled: true in GET /api/race/race-data.
+
+    Ported views read data.halfLapModeEnabled and fall back to false if missing:
         const halfLapModeEnabled = data.halfLapModeEnabled || false;
-    Half-lap mode is no longer toggleable in WebLynx2 — it is always on in
-    RaceStateManager. Omitting this field would make views format laps as
-    standard/whole-lap mode and break display for half-lap races.
+    Omitting this field breaks lap display for half-lap races.
 
-    Until views/helpers are updated to assume half-lap mode, hardcode
-    HalfLapModeEnabled = true on the race-data DTO for compatibility.
-
--------------------------------------------------------------------------------
+Completed
+---------
 [x] Port SSO view package off VIEW_CONFIG onto API viewConfig
--------------------------------------------------------------------------------
+    (../WebLynx2-Sso-View-Package: weblynx-helpers.js, applyMeetIdentity, etc.)
+[x] Implement unofficial results API (latest, info, race/{raceNumber})
+[x] Remove unused RaceStatus.Paused enum value
 
-Done in ../WebLynx2-Sso-View-Package:
-  - shared/weblynx-helpers.js reads data.viewConfig / keyValues
-  - templates use WebLynx.getLaneColor, applyMeetIdentity, etc.
-  - meetTitle / eventSubtitle from Event Title / Subtitle UI via API
-  - WebLynx2 appsettings Server.ViewsDirectory points at the package
+Remaining checklist
+-------------------
+[ ] unofficialResultsText — expose in Avalonia UI and/or root view.properties
+    (broadcast_results banner; HTML defaults to "Unofficial Results" today)
 
-Still outstanding for views / APIs
-----------------------------------
-[x] Implement unofficial results API so unofficial_results view works end-to-end:
-      GET /api/unofficial_results/latest
-      GET /api/unofficial_results/info
-      GET /api/unofficial_results/race/{raceNumber}
-    Catalog polls configured Unofficial Results Path for *.lif files.
+[ ] Official Results Path — either implement LIF poller + API (mirror unofficial)
+    or remove the UI field and appsettings key to avoid confusion
 
-[ ] Optional: unofficialResultsText in view.properties (broadcast_results
-    banner); defaults to "Unofficial Results" in HTML today.
+[ ] Live race info logging — optional periodic standings snapshot to file
+    (WebLynx wrote log/live_race_info.YYYY-MM-DD.txt every 5s; useful for
+    post-meet review; not yet ported)
 
-[ ] Consider removing the bundled WebLynx2/Views/ copy once packaging always
-    uses the external SSO view package.
+[ ] Logging toggles — optional EnableDataLogging / EnableLiveRaceInfoLogging
+    in appsettings or UI (WebLynx2 currently always logs raw TCP to received_data/)
+
+[ ] Test announcement — desktop action or dev tool to inject a PA message without
+    FinishLynx (WebLynx had POST /api/race/test-announcement)
+
+[ ] README — project overview, setup, FinishLynx ports, views directory, build/run
+
+[ ] Dev tooling — port or replace test_data/simulate_race.py for end-to-end
+    race simulation without FinishLynx hardware
+
+[ ] OBS sample — optional sso-obs-scenes.json documenting browser-source URLs
+
+[ ] Packaging — macOS distributable (WebLynx had osx-x64; build.sh is Windows-only)
+
+[ ] Remove bundled WebLynx2/Views/ copy once packaging always uses the external
+    SSO view package (only view.properties remains in-repo today)
