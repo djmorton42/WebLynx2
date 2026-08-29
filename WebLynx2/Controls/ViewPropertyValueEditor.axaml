@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:WebLynx2"
+             x:Class="WebLynx2.Controls.ViewPropertyValueEditor"
+             x:DataType="local:ViewPropertyRow">
+    <Panel>
+        <TextBox IsVisible="{Binding IsStringType}"
+                 Text="{Binding Value, Mode=TwoWay}"
+                 Watermark="Value"
+                 VerticalAlignment="Center"
+                 MinHeight="28" />
+
+        <NumericUpDown IsVisible="{Binding IsIntegerType}"
+                       Value="{Binding IntegerValue, Mode=TwoWay}"
+                       Minimum="0"
+                       Maximum="999999"
+                       FormatString="0"
+                       VerticalAlignment="Center"
+                       MinHeight="28" />
+
+        <ComboBox IsVisible="{Binding IsBooleanType}"
+                  ItemsSource="{Binding BooleanOptions}"
+                  SelectedItem="{Binding Value, Mode=TwoWay}"
+                  VerticalAlignment="Center"
+                  MinHeight="28" />
+
+        <Grid IsVisible="{Binding IsColorType}"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="6">
+            <Border Grid.Column="0"
+                    Background="{Binding ColorBackgroundBrush}"
+                    CornerRadius="4"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    MinHeight="28"
+                    Padding="6,0">
+                <TextBox Text="{Binding Value, Mode=TwoWay}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Foreground="{Binding ColorForegroundBrush}"
+                         VerticalAlignment="Center"
+                         Watermark="#RRGGBB" />
+            </Border>
+            <Button Grid.Column="1"
+                    Content="Pick"
+                    VerticalAlignment="Center"
+                    Click="PickColor_OnClick" />
+        </Grid>
+    </Panel>
+</UserControl>

@@ -6,7 +6,7 @@ namespace WebLynx2;
 
 /// <summary>
 /// Scans a Views root directory for subfolders that match the WebLynx layout (each view is a folder with required <c>template.html</c>).
-/// Loads <c>view.properties</c> from the Views root first (shared defaults), then each valid view's own <c>view.properties</c> (overrides).
+/// Loads <c>view.yaml</c> from the Views root first (shared defaults), then each valid view's own <c>view.yaml</c> (overrides).
 /// </summary>
 public class ViewDiscoveryService
 {
@@ -17,7 +17,7 @@ public class ViewDiscoveryService
     private readonly List<DiscoveredViewProperty> _propertyCatalog = new();
 
     /// <summary>
-    /// Effective merged properties and the list of <c>view.properties</c> files that define each key.
+    /// Effective merged properties and the list of <c>view.yaml</c> files that define each key.
     /// </summary>
     public IReadOnlyList<DiscoveredViewProperty> LastPropertyCatalog => _propertyCatalog;
 
@@ -82,10 +82,10 @@ public class ViewDiscoveryService
             }
         }
 
-        var accum = new Dictionary<string, List<(PropertySource Source, string Value)>>(StringComparer.Ordinal);
+        var accum = new Dictionary<string, List<(PropertySource Source, string Value, ViewPropertyType Type)>>(StringComparer.Ordinal);
         var keyValueHistory = new Dictionary<string, (string firstSource, string firstValue)>(StringComparer.Ordinal);
 
-        var sharedPropertiesPath = Path.Combine(_viewsPath, "view.properties");
+        var sharedPropertiesPath = Path.Combine(_viewsPath, ViewPropertiesFiles.FileName);
         MergePropertiesFile(sharedPropertiesPath, "Views directory (shared)", accum, keyValueHistory);
 
         foreach (var viewDirectory in viewDirectories)
@@ -96,7 +96,7 @@ public class ViewDiscoveryService
                 continue;
 
             MergePropertiesFile(
-                Path.Combine(viewDirectory, "view.properties"),
+                Path.Combine(viewDirectory, ViewPropertiesFiles.FileName),
                 $"view '{viewName}'",
                 accum,
                 keyValueHistory);
@@ -111,14 +111,14 @@ public class ViewDiscoveryService
             _propertyCatalog.Count);
     }
 
-    private void BuildPropertyCatalog(Dictionary<string, List<(PropertySource Source, string Value)>> accum)
+    private void BuildPropertyCatalog(Dictionary<string, List<(PropertySource Source, string Value, ViewPropertyType Type)>> accum)
     {
         foreach (var key in accum.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
         {
             var list = accum[key];
-            var effective = list[^1].Value;
+            var effective = list[^1];
             var sources = new List<PropertySource>();
-            foreach (var (src, _) in list)
+            foreach (var (src, _, _) in list)
             {
                 if (sources.All(s =>
                         !string.Equals(s.PropertiesFilePath, src.PropertiesFilePath, StringComparison.OrdinalIgnoreCase)))
@@ -128,64 +128,65 @@ public class ViewDiscoveryService
             _propertyCatalog.Add(new DiscoveredViewProperty
             {
                 Key = key,
-                Value = effective,
+                Value = effective.Value,
+                Type = effective.Type,
                 Sources = sources
             });
 
-            _keyValueStore?.SetValue(key, effective);
+            _keyValueStore?.SetValue(key, effective.Value);
         }
     }
 
     private void MergePropertiesFile(
         string propertiesFilePath,
         string sourceLabel,
-        Dictionary<string, List<(PropertySource Source, string Value)>> accum,
+        Dictionary<string, List<(PropertySource Source, string Value, ViewPropertyType Type)>> accum,
         Dictionary<string, (string firstSource, string firstValue)> keyValueHistory)
     {
         if (!File.Exists(propertiesFilePath))
             return;
 
-        var map = ViewPropertiesFileParser.ParseFile(propertiesFilePath, _logger);
-        if (map.Count == 0 && File.Exists(propertiesFilePath))
+        var entries = ViewPropertiesYamlParser.ParseFile(propertiesFilePath, _logger);
+        if (entries.Count == 0 && File.Exists(propertiesFilePath))
         {
-            _logger.LogInformation("Loaded view.properties from {Source} (no key=value entries)", sourceLabel);
+            _logger.LogInformation("Loaded view.yaml from {Source} (no property entries)", sourceLabel);
             return;
         }
 
         var src = new PropertySource(sourceLabel, Path.GetFullPath(propertiesFilePath));
 
-        foreach (var kv in map)
+        foreach (var entry in entries)
         {
-            if (keyValueHistory.TryGetValue(kv.Key, out var history))
+            if (keyValueHistory.TryGetValue(entry.Key, out var history))
             {
-                if (history.firstValue != kv.Value)
+                if (history.firstValue != entry.Value)
                 {
                     _logger.LogWarning(
                         "Key-value conflict for key '{Key}': '{FirstSource}' set '{FirstValue}', '{CurrentSource}' set '{CurrentValue}' (using '{CurrentValue}' - last wins)",
-                        kv.Key,
+                        entry.Key,
                         history.firstSource,
                         history.firstValue,
                         sourceLabel,
-                        kv.Value,
-                        kv.Value);
+                        entry.Value,
+                        entry.Value);
                 }
             }
             else
             {
-                keyValueHistory[kv.Key] = (sourceLabel, kv.Value);
+                keyValueHistory[entry.Key] = (sourceLabel, entry.Value);
             }
 
-            if (!accum.TryGetValue(kv.Key, out var list))
+            if (!accum.TryGetValue(entry.Key, out var list))
             {
-                list = new List<(PropertySource Source, string Value)>();
-                accum[kv.Key] = list;
+                list = new List<(PropertySource Source, string Value, ViewPropertyType Type)>();
+                accum[entry.Key] = list;
             }
 
-            list.Add((src, kv.Value));
-            _logger.LogDebug("Loaded key-value from {Source}: {Key} = {Value}", sourceLabel, kv.Key, kv.Value);
+            list.Add((src, entry.Value, entry.Type));
+            _logger.LogDebug("Loaded key-value from {Source}: {Key} = {Value} ({Type})", sourceLabel, entry.Key, entry.Value, entry.Type);
         }
 
-        _logger.LogInformation("Loaded view.properties from {Source}", sourceLabel);
+        _logger.LogInformation("Loaded view.yaml from {Source}", sourceLabel);
     }
 
     public ViewMetadata? GetViewMetadata(string viewName) =>

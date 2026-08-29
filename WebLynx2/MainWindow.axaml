@@ -378,11 +378,9 @@
                                                  VerticalAlignment="Center"
                                                  MinHeight="28"
                                                  IsReadOnly="True" />
-                                        <TextBox Grid.Column="1"
-                                                 Text="{Binding Value}"
-                                                 Watermark="Value"
-                                                 VerticalAlignment="Center"
-                                                 MinHeight="28" />
+                                        <controls:ViewPropertyValueEditor Grid.Column="1"
+                                                                            VerticalAlignment="Center"
+                                                                            DataContext="{Binding}" />
                                         <TextBlock Grid.Column="2"
                                                    Text="{Binding SourcesSummary}"
                                                    VerticalAlignment="Center"

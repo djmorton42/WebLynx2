@@ -5,7 +5,7 @@ using WebLynx2.Models;
 namespace WebLynx2;
 
 /// <summary>
-/// Writes the properties grid back to the same <c>view.properties</c> files that supplied each key at load time.
+/// Writes the properties grid back to the same <c>view.yaml</c> files that supplied each key at load time.
 /// </summary>
 public static class ViewPropertiesSaveService
 {
@@ -17,7 +17,7 @@ public static class ViewPropertiesSaveService
     {
         logger ??= NullLogger.Instance;
         viewsRootPath = Path.GetFullPath(viewsRootPath);
-        var rootFile = Path.GetFullPath(Path.Combine(viewsRootPath, "view.properties"));
+        var rootFile = Path.GetFullPath(Path.Combine(viewsRootPath, ViewPropertiesFiles.FileName));
 
         var current = new Dictionary<string, ViewPropertyRow>(StringComparer.Ordinal);
         foreach (var row in rows)
@@ -38,7 +38,7 @@ public static class ViewPropertiesSaveService
             {
                 if (!File.Exists(path))
                     continue;
-                ViewPropertiesFileEditor.RemoveKey(path, oldKey);
+                ViewPropertiesYamlFileEditor.RemoveKey(path, oldKey);
                 logger.LogDebug("Removed key {Key} from {Path}", oldKey, path);
             }
         }
@@ -47,6 +47,7 @@ public static class ViewPropertiesSaveService
         {
             var k = row.Key.Trim();
             var v = row.Value;
+            var type = row.Type;
 
             var renamedFromLoad =
                 !string.IsNullOrEmpty(row.InitialKey) &&
@@ -58,17 +59,17 @@ public static class ViewPropertiesSaveService
                 {
                     var p = src.PropertiesFilePath;
                     if (File.Exists(p))
-                        ViewPropertiesFileEditor.RemoveKey(p, row.InitialKey);
+                        ViewPropertiesYamlFileEditor.RemoveKey(p, row.InitialKey);
                 }
 
-                ViewPropertiesFileEditor.Upsert(rootFile, k, v);
+                ViewPropertiesYamlFileEditor.Upsert(rootFile, k, v, type);
                 logger.LogInformation("Renamed property {OldKey} -> {NewKey}; wrote to shared {Path}", row.InitialKey, k, rootFile);
                 continue;
             }
 
             if (row.InitialSources.Count == 0)
             {
-                ViewPropertiesFileEditor.Upsert(rootFile, k, v);
+                ViewPropertiesYamlFileEditor.Upsert(rootFile, k, v, type);
                 continue;
             }
 
@@ -76,11 +77,11 @@ public static class ViewPropertiesSaveService
             {
                 var p = src.PropertiesFilePath;
                 if (File.Exists(p))
-                    ViewPropertiesFileEditor.Upsert(p, k, v);
+                    ViewPropertiesYamlFileEditor.Upsert(p, k, v, type);
                 else
                 {
                     logger.LogWarning("Properties file missing, using shared file for key {Key}: {Path}", k, p);
-                    ViewPropertiesFileEditor.Upsert(rootFile, k, v);
+                    ViewPropertiesYamlFileEditor.Upsert(rootFile, k, v, type);
                 }
             }
         }

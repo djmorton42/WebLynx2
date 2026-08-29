@@ -55,4 +55,4 @@ Remaining checklist
 [ ] Packaging — macOS distributable (WebLynx had osx-x64; build.sh is Windows-only)
 
 [ ] Remove bundled WebLynx2/Views/ copy once packaging always uses the external
-    SSO view package (only view.properties remains in-repo today)
+    SSO view package (only view.yaml remains in-repo today)

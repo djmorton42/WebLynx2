@@ -160,7 +160,7 @@ public partial class MainWindow : Window
     {
         _allViewPropertyRows.Clear();
         foreach (var entry in catalog.OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
-            _allViewPropertyRows.Add(new ViewPropertyRow(entry.Key, entry.Value, entry.Sources));
+            _allViewPropertyRows.Add(new ViewPropertyRow(entry.Key, entry.Value, entry.Type, entry.Sources));
     }
 
     private void LoadedViewsListBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
@@ -187,7 +187,7 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(_viewsRootPath))
             return false;
 
-        var viewPropertiesPath = Path.GetFullPath(Path.Combine(_viewsRootPath, viewName, "view.properties"));
+        var viewPropertiesPath = Path.GetFullPath(Path.Combine(_viewsRootPath, viewName, ViewPropertiesFiles.FileName));
         return row.InitialSources.Any(s =>
             string.Equals(s.PropertiesFilePath, viewPropertiesPath, StringComparison.OrdinalIgnoreCase));
     }

@@ -1,0 +1,104 @@
+# Shared view configuration (converted from weblynx appsettings.json ViewProperties).
+properties:
+  - key: laneColorNames.1
+    type: string
+    value: Yellow
+  - key: laneColorNames.2
+    type: string
+    value: Black
+  - key: laneColorNames.3
+    type: string
+    value: Light Blue
+  - key: laneColorNames.4
+    type: string
+    value: Red
+  - key: laneColorNames.5
+    type: string
+    value: White
+  - key: laneColorNames.6
+    type: string
+    value: Navy Blue
+  - key: laneColorNames.7
+    type: string
+    value: Gray
+  - key: laneColorNames.8
+    type: string
+    value: Pink
+  - key: laneColorNames.9
+    type: string
+    value: Orange
+  - key: laneColorNames.10
+    type: string
+    value: Green
+  - key: laneColors.1
+    type: color
+    value: '#ffff00'
+  - key: laneColors.2
+    type: color
+    value: '#000000'
+  - key: laneColors.3
+    type: color
+    value: '#00ffff'
+  - key: laneColors.4
+    type: color
+    value: '#ff0000'
+  - key: laneColors.5
+    type: color
+    value: '#ffffff'
+  - key: laneColors.6
+    type: color
+    value: '#000080'
+  - key: laneColors.7
+    type: color
+    value: '#808080'
+  - key: laneColors.8
+    type: color
+    value: '#ffc0cb'
+  - key: laneColors.9
+    type: color
+    value: '#ffa500'
+  - key: laneColors.10
+    type: color
+    value: '#008000'
+  - key: laneStrokeColors.1
+    type: color
+    value: '#000000'
+  - key: laneStrokeColors.2
+    type: color
+    value: '#ffffff'
+  - key: laneStrokeColors.3
+    type: color
+    value: '#000000'
+  - key: laneStrokeColors.4
+    type: color
+    value: '#ffffff'
+  - key: laneStrokeColors.5
+    type: color
+    value: '#000000'
+  - key: laneStrokeColors.6
+    type: color
+    value: '#ffffff'
+  - key: laneStrokeColors.7
+    type: color
+    value: '#ffffff'
+  - key: laneStrokeColors.8
+    type: color
+    value: '#000000'
+  - key: laneStrokeColors.9
+    type: color
+    value: '#000000'
+  - key: laneStrokeColors.10
+    type: color
+    value: '#ffffff'
+  - key: updateInterval
+    type: integer
+    value: 250
+  - key: defaultLaneColor
+    type: color
+    value: '#333333'
+  - key: defaultStrokeColor
+    type: color
+    value: '#ffffff'
+  - key: finishedText
+    type: string
+    value: '-'
