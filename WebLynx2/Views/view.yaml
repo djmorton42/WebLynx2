@@ -90,9 +90,12 @@ properties:
   - key: laneStrokeColors.10
     type: color
     value: '#ffffff'
-  - key: updateInterval
+  - key: fastUpdateInterval
     type: integer
-    value: 250
+    value: 50
+  - key: slowUpdateInterval
+    type: integer
+    value: 500
   - key: defaultLaneColor
     type: color
     value: '#333333'
