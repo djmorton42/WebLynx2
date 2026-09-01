@@ -42,8 +42,13 @@ Remaining checklist
 [ ] Logging toggles — optional EnableDataLogging / EnableLiveRaceInfoLogging
     in appsettings or UI (WebLynx2 currently always logs raw TCP to received_data/)
 
-[ ] Test announcement — desktop action or dev tool to inject a PA message without
-    FinishLynx (WebLynx had POST /api/race/test-announcement)
+[x] Forced announcement override — Announcements tab Apply/Clear; API publishes
+    forced text on race-data when active, otherwise FinishLynx announcement.
+    (FinishLynx messages still stored on race state.)
+
+[ ] Test announcement — desktop action or dev tool to inject a PA message into race
+    state without FinishLynx (WebLynx had POST /api/race/test-announcement).
+    Forced override covers display without mutating stored FinishLynx text.
 
 [ ] README — project overview, setup, FinishLynx ports, views directory, build/run
 

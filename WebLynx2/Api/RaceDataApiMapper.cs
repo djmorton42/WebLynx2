@@ -2,8 +2,13 @@ using WebLynx2.Models;
 
 namespace WebLynx2.Api;
 
-public class RaceDataApiMapper(KeyValueStoreService keyValueStore, int delayedDisplaySeconds)
+public class RaceDataApiMapper(
+    KeyValueStoreService keyValueStore,
+    int delayedDisplaySeconds,
+    AnnouncementOverrideService? announcementOverride = null)
 {
+    private readonly AnnouncementOverrideService _announcementOverride =
+        announcementOverride ?? new AnnouncementOverrideService();
     private readonly object _viewConfigGate = new();
     private long _cachedViewConfigVersion = -1;
     private Dictionary<string, string> _cachedKeyValues = new();
@@ -20,7 +25,7 @@ public class RaceDataApiMapper(KeyValueStoreService keyValueStore, int delayedDi
             Event = raceData.Event,
             Status = raceData.Status,
             LastUpdated = raceData.LastUpdated,
-            AnnouncementMessage = raceData.AnnouncementMessage,
+            AnnouncementMessage = _announcementOverride.Resolve(raceData.AnnouncementMessage),
             HalfLapModeEnabled = true,
             KeyValues = keyValues,
             ViewConfig = viewConfig,

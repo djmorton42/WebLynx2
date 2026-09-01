@@ -75,7 +75,8 @@
                                  Margin="0,0,0,10" />
 
                         <TextBlock Grid.Row="2"
-                                   Grid.Column="1"
+                                   Grid.Column="0"
+                                   Grid.ColumnSpan="2"
                                    Text="Results Configuration"
                                    FontWeight="SemiBold"
                                    HorizontalAlignment="Left"
@@ -406,6 +407,43 @@
                 </Grid>
             </Border>
         </Grid>
+            </TabItem>
+
+            <TabItem Header="Announcements">
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="14,12"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Forced Announcement"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="When applied, this text is published on race-data instead of the FinishLynx announcement. Clear to resume FinishLynx messages."
+                                   TextWrapping="Wrap"
+                                   Opacity="0.85"
+                                   FontSize="12" />
+                        <TextBox x:Name="ForcedAnnouncementTextBox"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="120"
+                                 Watermark="Override announcement shown on the announcements view" />
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8">
+                            <Button Content="Apply"
+                                    MinWidth="80"
+                                    Click="ForcedAnnouncementApply_OnClick" />
+                            <Button Content="Clear"
+                                    MinWidth="80"
+                                    Click="ForcedAnnouncementClear_OnClick" />
+                            <TextBlock x:Name="ForcedAnnouncementStatusTextBlock"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                       FontSize="12"
+                                       Text="" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </TabItem>
 
             <TabItem Header="Race State">

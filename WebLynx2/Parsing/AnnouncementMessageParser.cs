@@ -41,7 +41,7 @@ public class AnnouncementMessageParser
 
             if (messageLines.Count > 0)
             {
-                var message = string.Join(" ", messageLines);
+                var message = string.Join('\n', messageLines);
                 _logger.LogInformation("Parsed announcement message: {Message}", message);
                 return message;
             }

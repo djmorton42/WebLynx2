@@ -13,9 +13,11 @@ public sealed class RaceHttpServer(
     KeyValueStoreService keyValueStore,
     int delayedDisplaySeconds,
     string? viewsRootPath = null,
-    UnofficialResultsCatalog? unofficialResults = null) : IAsyncDisposable
+    UnofficialResultsCatalog? unofficialResults = null,
+    AnnouncementOverrideService? announcementOverride = null) : IAsyncDisposable
 {
-    private readonly RaceDataApiMapper _mapper = new(keyValueStore, delayedDisplaySeconds);
+    private readonly RaceDataApiMapper _mapper =
+        new(keyValueStore, delayedDisplaySeconds, announcementOverride);
     private readonly string? _viewsRoot = string.IsNullOrWhiteSpace(viewsRootPath)
         ? null
         : Path.GetFullPath(viewsRootPath);

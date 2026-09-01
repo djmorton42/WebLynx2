@@ -36,6 +36,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _raceStateRefreshTimer;
 
     private readonly KeyValueStoreService _keyValueStore = new();
+    private readonly AnnouncementOverrideService _announcementOverride = new();
 
     private string? _viewsRootPath;
     private Dictionary<string, List<string>> _propertyLoadSnapshot = new(StringComparer.Ordinal);
@@ -78,6 +79,7 @@ public partial class MainWindow : Window
         _raceStateRefreshTimer.Start();
 
         ClearRaceStateDisplay();
+        UpdateForcedAnnouncementStatus();
 
         Closing += MainWindow_OnClosing;
     }
@@ -413,6 +415,26 @@ public partial class MainWindow : Window
     private async void OfficialResultsPathBrowse_OnClick(object? sender, RoutedEventArgs e) =>
         await PickFolderIntoTextBoxAsync(OfficialResultsPathTextBox, "Official results folder");
 
+    private void ForcedAnnouncementApply_OnClick(object? sender, RoutedEventArgs e)
+    {
+        _announcementOverride.Apply(ForcedAnnouncementTextBox.Text);
+        UpdateForcedAnnouncementStatus();
+    }
+
+    private void ForcedAnnouncementClear_OnClick(object? sender, RoutedEventArgs e)
+    {
+        _announcementOverride.Clear();
+        ForcedAnnouncementTextBox.Text = string.Empty;
+        UpdateForcedAnnouncementStatus();
+    }
+
+    private void UpdateForcedAnnouncementStatus()
+    {
+        ForcedAnnouncementStatusTextBlock.Text = _announcementOverride.IsActive
+            ? "Override active"
+            : "Using FinishLynx announcements";
+    }
+
     private async Task PickFolderIntoTextBoxAsync(TextBox target, string dialogTitle)
     {
         var top = TopLevel.GetTopLevel(this);
@@ -510,7 +532,8 @@ public partial class MainWindow : Window
             _keyValueStore,
             GetDelayedDisplaySeconds(),
             viewsRootPath: _viewsRootPath,
-            unofficialResults: unofficialCatalog);
+            unofficialResults: unofficialCatalog,
+            announcementOverride: _announcementOverride);
 
         try
         {
