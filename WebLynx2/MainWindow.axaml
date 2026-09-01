@@ -74,7 +74,24 @@
                                  VerticalAlignment="Center"
                                  Margin="0,0,0,10" />
 
-                        <TextBlock Grid.Row="2"
+                        <TextBlock Grid.Row="2" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Delayed Lap Display (s)" />
+                        <NumericUpDown x:Name="DelayedDisplaySecondsNumericUpDown"
+                                       Grid.Row="2" Grid.Column="1"
+                                       Width="140"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,0,10"
+                                       Minimum="0"
+                                       Maximum="60"
+                                       Increment="1"
+                                       Value="5"
+                                       FormatString="N0"
+                                       ShowButtonSpinner="True"
+                                       ClipValueToMinMax="True" />
+
+                        <TextBlock Grid.Row="3"
                                    Grid.Column="0"
                                    Grid.ColumnSpan="2"
                                    Text="Results Configuration"
@@ -82,10 +99,10 @@
                                    HorizontalAlignment="Left"
                                    Margin="0,8,0,4" />
 
-                        <TextBlock Grid.Row="3" Grid.Column="0"
+                        <TextBlock Grid.Row="4" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Unofficial Results Path" />
-                        <Grid Grid.Row="3"
+                        <Grid Grid.Row="4"
                               Grid.Column="1"
                               ColumnDefinitions="*,Auto"
                               ColumnSpacing="8"
@@ -100,29 +117,32 @@
                                     Click="UnofficialResultsPathBrowse_OnClick" />
                         </Grid>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0"
+                        <TextBlock Grid.Row="5" Grid.Column="0"
                                    VerticalAlignment="Center"
-                                   Text="Official Results Path" />
-                        <Grid Grid.Row="4"
+                                   Text="Official Results Path"
+                                   Opacity="0.5" />
+                        <Grid Grid.Row="5"
                               Grid.Column="1"
                               ColumnDefinitions="*,Auto"
                               ColumnSpacing="8"
                               Margin="0,0,0,10">
                             <TextBox x:Name="OfficialResultsPathTextBox"
                                      Grid.Column="0"
-                                     VerticalAlignment="Center" />
+                                     VerticalAlignment="Center"
+                                     IsEnabled="False" />
                             <Button Grid.Column="1"
                                     Content="Browse…"
                                     MinWidth="80"
                                     VerticalAlignment="Center"
+                                    IsEnabled="False"
                                     Click="OfficialResultsPathBrowse_OnClick" />
                         </Grid>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0"
+                        <TextBlock Grid.Row="6" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="File Encoding" />
                         <ComboBox x:Name="FileEncodingComboBox"
-                                  Grid.Row="5" Grid.Column="1"
+                                  Grid.Row="6" Grid.Column="1"
                                   HorizontalAlignment="Left"
                                   VerticalAlignment="Center"
                                   Margin="0,0,0,10"
@@ -132,11 +152,11 @@
                             <ComboBoxItem Content="Windows-1252" />
                         </ComboBox>
 
-                        <TextBlock Grid.Row="6" Grid.Column="0"
+                        <TextBlock Grid.Row="7" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Results Polling Interval (s)" />
                         <NumericUpDown x:Name="ResultsPollingIntervalNumericUpDown"
-                                       Grid.Row="6" Grid.Column="1"
+                                       Grid.Row="7" Grid.Column="1"
                                        Width="140"
                                        HorizontalAlignment="Left"
                                        VerticalAlignment="Center"
@@ -145,22 +165,6 @@
                                        Maximum="3600"
                                        Increment="1"
                                        Value="1"
-                                       FormatString="N0"
-                                       ShowButtonSpinner="True"
-                                       ClipValueToMinMax="True" />
-
-                        <TextBlock Grid.Row="7" Grid.Column="0"
-                                   VerticalAlignment="Center"
-                                   Text="Delayed Lap Display (s)" />
-                        <NumericUpDown x:Name="DelayedDisplaySecondsNumericUpDown"
-                                       Grid.Row="7" Grid.Column="1"
-                                       Width="140"
-                                       HorizontalAlignment="Left"
-                                       VerticalAlignment="Center"
-                                       Minimum="0"
-                                       Maximum="60"
-                                       Increment="1"
-                                       Value="5"
                                        FormatString="N0"
                                        ShowButtonSpinner="True"
                                        ClipValueToMinMax="True" />
