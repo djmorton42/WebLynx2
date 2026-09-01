@@ -65,4 +65,73 @@ public class AppConfigurationTests
         Assert.Equal(".", loaded.Event.OfficialResultsPath);
         Assert.Equal(8081, loaded.Server.ResultsPort);
     }
+
+    [Fact]
+    public void ResolveSettingsFilePath_FromBuildOutput_UsesProjectSourceFile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "WebLynx2SettingsResolve_" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(root, "WebLynx2");
+        var outputDir = Path.Combine(projectDir, "bin", "Debug", "net9.0");
+        try
+        {
+            Directory.CreateDirectory(outputDir);
+            File.WriteAllText(Path.Combine(projectDir, "WebLynx2.csproj"), "<Project />");
+            File.WriteAllText(Path.Combine(projectDir, "appsettings.json"), """{"Event":{"Title":"from-source"}}""");
+            File.WriteAllText(Path.Combine(outputDir, "appsettings.json"), """{"Event":{"Title":"from-output"}}""");
+
+            var resolved = AppConfiguration.ResolveSettingsFilePath(outputDir);
+
+            Assert.Equal(Path.Combine(projectDir, "appsettings.json"), resolved);
+            Assert.Equal("from-source", AppConfiguration.LoadFrom(resolved).Event.Title);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ResolveSettingsFilePath_PublishedApp_UsesExecutableDirectory()
+    {
+        var publishDir = Path.Combine(Path.GetTempPath(), "WebLynx2Published_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(publishDir);
+            File.WriteAllText(Path.Combine(publishDir, "appsettings.json"), """{"Event":{"Title":"installed"}}""");
+
+            var resolved = AppConfiguration.ResolveSettingsFilePath(publishDir);
+
+            Assert.Equal(Path.Combine(publishDir, "appsettings.json"), resolved);
+        }
+        finally
+        {
+            if (Directory.Exists(publishDir))
+                Directory.Delete(publishDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ResolveSettingsFilePath_PublishFolderInsideProject_DoesNotUseSourceFile()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "WebLynx2PublishInside_" + Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(root, "WebLynx2");
+        var publishDir = Path.Combine(projectDir, "publish");
+        try
+        {
+            Directory.CreateDirectory(publishDir);
+            File.WriteAllText(Path.Combine(projectDir, "WebLynx2.csproj"), "<Project />");
+            File.WriteAllText(Path.Combine(projectDir, "appsettings.json"), """{"Event":{"Title":"from-source"}}""");
+            File.WriteAllText(Path.Combine(publishDir, "appsettings.json"), """{"Event":{"Title":"from-publish"}}""");
+
+            var resolved = AppConfiguration.ResolveSettingsFilePath(publishDir);
+
+            Assert.Equal(Path.Combine(publishDir, "appsettings.json"), resolved);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
 }
