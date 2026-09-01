@@ -284,9 +284,7 @@ public sealed class FinishLynxTcpServer
                 var chunk = new byte[n];
                 buffer.AsSpan(0, n).CopyTo(chunk);
 
-                if (kind == TcpChannelKind.Clock)
-                    _logger.LogClock(chunk);
-                else
+                if (kind == TcpChannelKind.Results)
                     _logger.LogResults(chunk);
 
                 var remote = client.Client.RemoteEndPoint?.ToString() ?? "unknown";

@@ -73,7 +73,7 @@ public partial class MainWindow : Window
 
         _raceStateRefreshTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(100)
+            Interval = TimeSpan.FromSeconds(1)
         };
         _raceStateRefreshTimer.Tick += (_, _) => RefreshRaceStateDisplay();
         _raceStateRefreshTimer.Start();
