@@ -8,6 +8,7 @@
         x:Class="WebLynx2.MainWindow"
         x:DataType="local:MainWindow"
         Title="WebLynx2"
+        Icon="/Assets/logo.ico"
         Width="1400" Height="792"
         MinWidth="820"
         WindowStartupLocation="CenterScreen">
