@@ -1,0 +1,1 @@
+Comprehensive example view demonstrating all WebLynx capabilities including real-time race data, announcements, statistics, and modern UI components.

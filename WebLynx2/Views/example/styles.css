@@ -1,0 +1,450 @@
+/* Example View Styles - Comprehensive Demo */
+/* CSS Reset for consistent rendering across browsers */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: transparent; /* Transparent for overlay */
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 40, 0.95) 0%, 
+    rgba(40, 40, 80, 0.9) 50%, 
+    rgba(20, 20, 40, 0.95) 100%);
+}
+
+/* Header Section */
+.header-section {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(90deg, 
+    rgba(139, 0, 0, 0.9) 0%, 
+    rgba(220, 20, 60, 0.9) 50%, 
+    rgba(139, 0, 0, 0.9) 100%);
+  border-bottom: 3px solid #FFD700;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  z-index: 1000;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.main-logo {
+  height: 80px;
+  width: auto;
+  background-color: #ffffff;
+  padding: 10px;
+  border-radius: 8px;
+  filter: drop-shadow(2px 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.title-section {
+  flex: 1;
+  text-align: center;
+  margin: 0 40px;
+}
+
+.main-title {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  font-size: 1.2em;
+  color: #FFD700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  font-weight: normal;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px 20px;
+  border-radius: 25px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  background-color: #666;
+  transition: background-color 0.3s ease;
+}
+
+.status-dot.notstarted { background-color: #666; }
+.status-dot.running { background-color: #4CAF50; animation: pulse 1s infinite; }
+.status-dot.paused { background-color: #FF9800; }
+.status-dot.finished { background-color: #2196F3; }
+.status-dot.error { background-color: #F44336; }
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.status-text {
+  font-weight: bold;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 0.9em;
+}
+
+/* Main Content Grid */
+.content-grid {
+  position: fixed;
+  top: 120px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 20px;
+  padding: 20px;
+  z-index: 100;
+}
+
+/* Info Panels */
+.info-panel {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-panel:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.info-panel h3 {
+  color: #FFD700;
+  font-size: 1.4em;
+  margin-bottom: 15px;
+  text-align: center;
+  border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+  padding-bottom: 10px;
+}
+
+/* Race Info Panel */
+.race-info {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-weight: bold;
+  color: #cccccc;
+  font-size: 0.95em;
+}
+
+.value {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1.05em;
+}
+
+/* Racers Panel */
+.racers-panel {
+  grid-column: 2;
+  grid-row: 1;
+  overflow-y: auto;
+}
+
+.racers-list {
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.racer-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 5px 8px;
+  transition: all 0.2s ease;
+}
+
+.racer-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.racer-lane {
+  width: 6px;
+  height: 28px;
+  border-radius: 3px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.racer-details {
+  flex: 1;
+  margin-right: 8px;
+}
+
+.racer-name {
+  font-weight: bold;
+  color: #ffffff;
+  font-size: 1.05em;
+  line-height: 1.2;
+  margin-bottom: 0;
+}
+
+.racer-affiliation {
+  color: #cccccc;
+  font-size: 0.85em;
+  line-height: 1.2;
+}
+
+.racer-times {
+  text-align: right;
+  margin-right: 8px;
+}
+
+.racer-time {
+  font-weight: bold;
+  color: #4CAF50;
+  font-size: 1.05em;
+  line-height: 1.2;
+  margin-bottom: 0;
+}
+
+.racer-laps {
+  color: #FFD700;
+  font-size: 0.85em;
+  line-height: 1.2;
+}
+
+.racer-place {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.85em;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* Announcements Panel */
+.announcements-panel {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.announcement-content {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.announcement-message {
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  color: #ffffff;
+  font-size: 1.1em;
+  line-height: 1.4;
+  animation: slideIn 0.5s ease;
+}
+
+.no-announcement {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Statistics Panel */
+.stats-panel {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  height: 100%;
+}
+
+.stat-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.stat-number {
+  display: block;
+  font-size: 2.2em;
+  font-weight: bold;
+  color: #4CAF50;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  color: #cccccc;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Floating Race Clock */
+.floating-clock {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 3px solid #FFD700;
+  border-radius: 15px;
+  padding: 20px 25px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.clock-time {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  margin-bottom: 5px;
+}
+
+.clock-label {
+  color: #FFD700;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.7);
+}
+
+/* Responsive adjustments for different screen sizes */
+@media (max-width: 1920px) {
+  body {
+    width: 100vw;
+    height: 100vh;
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+  }
+  
+  .info-panel {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+/* Animation for panel loading */
+.info-panel {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.info-panel:nth-child(1) { animation-delay: 0.1s; }
+.info-panel:nth-child(2) { animation-delay: 0.2s; }
+.info-panel:nth-child(3) { animation-delay: 0.3s; }
+.info-panel:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="icon" type="image/png" href="/views/example/logo.png">
+    <link rel="stylesheet" href="/views/example/styles.css">
+  </head>
+  <body>
+    <!-- Header Section with Logo and Title -->
+    <div class="header-section">
+      <div class="logo-container">
+        <img src="/views/example/logo.png" alt="Example Logo" class="main-logo">
+      </div>
+      <div class="title-section">
+        <h1 class="main-title" id="main-title"></h1>
+        <h2 class="subtitle" id="subtitle"></h2>
+      </div>
+      <div class="status-indicator" id="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Ready</span>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      <!-- Race Information Panel -->
+      <div class="info-panel race-info">
+        <h3>Race Information</h3>
+        <div class="info-item">
+          <span class="label">Event:</span>
+          <span class="value" id="event-name">Loading...</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Status:</span>
+          <span class="value" id="race-status">Not Started</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Current Time:</span>
+          <span class="value" id="current-time">00:00.0</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Lap Mode:</span>
+          <span class="value" id="lap-mode">Standard</span>
+        </div>
+      </div>
+
+      <!-- Racers Panel -->
+      <div class="info-panel racers-panel">
+        <h3>Racers</h3>
+        <div class="racers-list" id="racers-list">
+          <!-- Racers will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Announcements Panel -->
+      <div class="info-panel announcements-panel">
+        <h3>Announcements</h3>
+        <div class="announcement-content" id="announcement-content">
+          <div class="no-announcement">No announcements</div>
+        </div>
+      </div>
+
+      <!-- Statistics Panel -->
+      <div class="info-panel stats-panel">
+        <h3>Race Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-number" id="total-racers">0</span>
+            <span class="stat-label">Total Racers</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="active-racers">0</span>
+            <span class="stat-label">Active</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="finished-racers">0</span>
+            <span class="stat-label">Finished</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="avg-lap-time">--:--</span>
+            <span class="stat-label">Avg Lap Time</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Race Clock -->
+    <div class="floating-clock" id="floating-clock">
+      <div class="clock-time">00:00.0</div>
+      <div class="clock-label">Race Time</div>
+    </div>
+
+    <!-- HTML5 Template for racer items -->
+    <template id="racer-template">
+      <div class="racer-item">
+        <div class="racer-lane" style="background-color: var(--lane-color);"></div>
+        <div class="racer-details">
+          <div class="racer-name"></div>
+          <div class="racer-affiliation"></div>
+        </div>
+        <div class="racer-times">
+          <div class="racer-time"></div>
+          <div class="racer-laps"></div>
+        </div>
+        <div class="racer-place"></div>
+      </div>
+    </template>
+
+    <script src="/views/shared/weblynx-helpers.js"></script>
+    <script>
+      const UPDATE_INTERVAL = WebLynx.DEFAULT_UPDATE_INTERVAL_MS;
+
+      function createRacerItem(racer, raceStatus, halfLapModeEnabled, config) {
+        const template = document.getElementById('racer-template');
+        const clone = template.content.cloneNode(true);
+        
+        const laneColor = WebLynx.getLaneColor(config, racer.lane);
+        clone.querySelector('.racer-item').style.setProperty('--lane-color', laneColor);
+        
+        clone.querySelector('.racer-name').textContent = racer.name || '-';
+        clone.querySelector('.racer-affiliation').textContent = racer.affiliation || '-';
+        clone.querySelector('.racer-time').textContent = WebLynx.formatTime(racer.cumulativeSplitTime);
+        clone.querySelector('.racer-laps').textContent = WebLynx.formatLapsDisplay(racer.delayedLapsRemaining, raceStatus, halfLapModeEnabled, racer.hasFirstCrossing);
+        clone.querySelector('.racer-place').textContent = racer.placeText || '-';
+        
+        return clone;
+      }
+
+      function updateRaceData() {
+        WebLynx.updateRaceData((data, error) => {
+          if (error) {
+            // Handle error - show disconnected status
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusDot = statusIndicator.querySelector('.status-dot');
+            const statusText = statusIndicator.querySelector('.status-text');
+            
+            statusText.textContent = 'Disconnected';
+            statusDot.className = 'status-dot error';
+            return;
+          }
+          
+          const config = WebLynx.applyViewConfig(data);
+          WebLynx.applyMeetIdentity(data, 'main-title', 'subtitle');
+          
+          // Update race information
+          document.getElementById('event-name').textContent = data.event?.eventName || 'No Event';
+          document.getElementById('race-status').textContent = data.status || 'Unknown';
+          document.getElementById('current-time').textContent = WebLynx.formatRaceTime(data.currentTime);
+          document.getElementById('lap-mode').textContent = data.halfLapModeEnabled ? 'Half-Lap' : 'Standard';
+          
+          // Update floating clock
+          document.getElementById('floating-clock').querySelector('.clock-time').textContent = WebLynx.formatRaceTime(data.currentTime);
+          
+          // Update status indicator
+          const statusIndicator = document.getElementById('status-indicator');
+          const statusDot = statusIndicator.querySelector('.status-dot');
+          const statusText = statusIndicator.querySelector('.status-text');
+          
+          const statusInfo = WebLynx.getStatusInfo(data.status);
+          statusText.textContent = statusInfo.text;
+          statusDot.className = 'status-dot ' + statusInfo.class;
+          
+          // Update racers
+          const racersList = document.getElementById('racers-list');
+          racersList.innerHTML = '';
+          
+          const activeRacers = WebLynx.getActiveRacers(data.racers);
+          const halfLapModeEnabled = data.halfLapModeEnabled || false;
+          
+          activeRacers.forEach(racer => {
+            racersList.appendChild(createRacerItem(racer, data.status, halfLapModeEnabled, config));
+          });
+          
+          // Update statistics
+          document.getElementById('total-racers').textContent = data.racers.length;
+          document.getElementById('active-racers').textContent = activeRacers.length;
+          document.getElementById('finished-racers').textContent = data.racers.filter(r => r.hasFinished).length;
+          
+          // Calculate average lap time (simplified)
+          const times = activeRacers.map(r => r.cumulativeSplitTime).filter(t => t);
+          if (times.length > 0) {
+            // This is a simplified calculation - in reality you'd want more sophisticated logic
+            document.getElementById('avg-lap-time').textContent = WebLynx.formatTime(times[0]);
+          } else {
+            document.getElementById('avg-lap-time').textContent = '--:--';
+          }
+          
+          // Update announcements
+          const announcementContent = document.getElementById('announcement-content');
+          if (data.announcementMessage && data.announcementMessage.trim()) {
+            announcementContent.innerHTML = `<div class="announcement-message">${data.announcementMessage}</div>`;
+          } else {
+            announcementContent.innerHTML = '<div class="no-announcement">No announcements</div>';
+          }
+        });
+      }
+
+      // Start updating
+      WebLynx.startAutoUpdate(updateRaceData, UPDATE_INTERVAL);
+    </script>
+  </body>
+</html>
