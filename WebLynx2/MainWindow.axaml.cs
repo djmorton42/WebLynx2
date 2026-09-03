@@ -37,6 +37,8 @@ public partial class MainWindow : Window
 
     private readonly KeyValueStoreService _keyValueStore = new();
     private readonly AnnouncementOverrideService _announcementOverride = new();
+    private readonly ObservableCollection<string> _announcementFavourites = new();
+    private bool _announcementFavouritesComboSync;
 
     private string? _viewsRootPath;
     private Dictionary<string, List<string>> _propertyLoadSnapshot = new(StringComparer.Ordinal);
@@ -80,6 +82,7 @@ public partial class MainWindow : Window
 
         ClearRaceStateDisplay();
         UpdateForcedAnnouncementStatus();
+        UpdateAnnouncementRemoveFavouriteVisibility();
 
         Closing += MainWindow_OnClosing;
     }
@@ -109,6 +112,7 @@ public partial class MainWindow : Window
         ClockPortTextBox.Text = srv.ClockPort.ToString();
         HttpPortTextBox.Text = srv.HttpPort.ToString();
 
+        LoadAnnouncementFavourites(settings.Announcements.Favourites);
         RefreshDiscoveredViews(srv);
     }
 
@@ -263,6 +267,10 @@ public partial class MainWindow : Window
                     ? httpPort
                     : existing.Server.HttpPort,
                 ViewsDirectory = existing.Server.ViewsDirectory
+            },
+            Announcements = new AnnouncementsSettings
+            {
+                Favourites = _announcementFavourites.ToList()
             }
         };
     }
@@ -426,6 +434,109 @@ public partial class MainWindow : Window
         _announcementOverride.Clear();
         ForcedAnnouncementTextBox.Text = string.Empty;
         UpdateForcedAnnouncementStatus();
+    }
+
+    private void ForcedAnnouncementTextBox_OnTextChanged(object? sender, TextChangedEventArgs e) =>
+        UpdateAnnouncementRemoveFavouriteVisibility();
+
+    private void AnnouncementAddFavourite_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var text = ForcedAnnouncementTextBox.Text ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        if (_announcementFavourites.Any(f => string.Equals(f, text, StringComparison.Ordinal)))
+        {
+            UpdateAnnouncementRemoveFavouriteVisibility();
+            return;
+        }
+
+        _announcementFavourites.Add(text);
+        PersistAnnouncementFavourites();
+        RefreshAnnouncementFavouritesComboBox();
+        UpdateAnnouncementRemoveFavouriteVisibility();
+    }
+
+    private void AnnouncementRemoveFavourite_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var text = ForcedAnnouncementTextBox.Text ?? string.Empty;
+        var match = _announcementFavourites.FirstOrDefault(f => string.Equals(f, text, StringComparison.Ordinal));
+        if (match is null)
+            return;
+
+        _announcementFavourites.Remove(match);
+        PersistAnnouncementFavourites();
+        RefreshAnnouncementFavouritesComboBox();
+        UpdateAnnouncementRemoveFavouriteVisibility();
+    }
+
+    private void AnnouncementFavouritesComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_announcementFavouritesComboSync)
+            return;
+
+        if (AnnouncementFavouritesComboBox.SelectedItem is not string selected)
+            return;
+
+        ForcedAnnouncementTextBox.Text = selected;
+
+        _announcementFavouritesComboSync = true;
+        try
+        {
+            AnnouncementFavouritesComboBox.SelectedItem = null;
+        }
+        finally
+        {
+            _announcementFavouritesComboSync = false;
+        }
+
+        UpdateAnnouncementRemoveFavouriteVisibility();
+    }
+
+    private void LoadAnnouncementFavourites(IEnumerable<string>? favourites)
+    {
+        _announcementFavourites.Clear();
+        if (favourites is not null)
+        {
+            foreach (var favourite in favourites.Where(f => !string.IsNullOrWhiteSpace(f)))
+            {
+                if (_announcementFavourites.Any(f => string.Equals(f, favourite, StringComparison.Ordinal)))
+                    continue;
+                _announcementFavourites.Add(favourite);
+            }
+        }
+
+        RefreshAnnouncementFavouritesComboBox();
+        UpdateAnnouncementRemoveFavouriteVisibility();
+    }
+
+    private void RefreshAnnouncementFavouritesComboBox()
+    {
+        _announcementFavouritesComboSync = true;
+        try
+        {
+            AnnouncementFavouritesComboBox.ItemsSource = null;
+            AnnouncementFavouritesComboBox.ItemsSource = _announcementFavourites.ToList();
+            AnnouncementFavouritesComboBox.SelectedItem = null;
+        }
+        finally
+        {
+            _announcementFavouritesComboSync = false;
+        }
+    }
+
+    private void PersistAnnouncementFavourites()
+    {
+        var settings = AppConfiguration.Load();
+        settings.Announcements.Favourites = _announcementFavourites.ToList();
+        AppConfiguration.Save(settings);
+    }
+
+    private void UpdateAnnouncementRemoveFavouriteVisibility()
+    {
+        var text = ForcedAnnouncementTextBox.Text ?? string.Empty;
+        AnnouncementRemoveFavouriteButton.IsVisible =
+            _announcementFavourites.Any(f => string.Equals(f, text, StringComparison.Ordinal));
     }
 
     private void UpdateForcedAnnouncementStatus()

@@ -5,6 +5,16 @@ public sealed class AppSettings
     public EventSettings Event { get; set; } = new();
 
     public ServerSettings Server { get; set; } = new();
+
+    public AnnouncementsSettings Announcements { get; set; } = new();
+}
+
+public sealed class AnnouncementsSettings
+{
+    /// <summary>
+    /// Saved announcement texts available from the Announcements tab favourites drop-down.
+    /// </summary>
+    public List<string> Favourites { get; set; } = new();
 }
 
 public sealed class EventSettings

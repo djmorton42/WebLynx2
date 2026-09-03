@@ -29,6 +29,10 @@ public class AppConfigurationTests
                     ClockPort = 9000,
                     HttpPort = 5002,
                     ViewsDirectory = "/tmp/views"
+                },
+                Announcements =
+                {
+                    Favourites = ["Welcome skaters", "Final call for heat 3"]
                 }
             };
 
@@ -46,6 +50,7 @@ public class AppConfigurationTests
             Assert.Equal(9000, loaded.Server.ClockPort);
             Assert.Equal(5002, loaded.Server.HttpPort);
             Assert.Equal("/tmp/views", loaded.Server.ViewsDirectory);
+            Assert.Equal(new[] { "Welcome skaters", "Final call for heat 3" }, loaded.Announcements.Favourites);
         }
         finally
         {
@@ -64,6 +69,7 @@ public class AppConfigurationTests
         Assert.Equal(".", loaded.Event.UnofficialResultsPath);
         Assert.Equal(".", loaded.Event.OfficialResultsPath);
         Assert.Equal(8081, loaded.Server.ResultsPort);
+        Assert.Empty(loaded.Announcements.Favourites);
     }
 
     [Fact]
