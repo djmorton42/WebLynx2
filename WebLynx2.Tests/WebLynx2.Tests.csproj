@@ -21,4 +21,8 @@
     <ProjectReference Include="..\WebLynx2\WebLynx2.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
