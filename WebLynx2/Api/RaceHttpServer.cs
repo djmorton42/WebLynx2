@@ -114,12 +114,18 @@ public sealed class RaceHttpServer(
 
     private static void AddPrefixes(HttpListener listener, int port)
     {
-        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
-
         if (OperatingSystem.IsWindows())
+        {
+            // HTTP.sys allows loopback and strong-wildcard registrations together.
+            listener.Prefixes.Add($"http://127.0.0.1:{port}/");
             listener.Prefixes.Add($"http://+:{port}/");
+        }
         else
+        {
+            // Socket-based HttpListener: binding both 127.0.0.1 and * on the same
+            // port fails with EADDRINUSE on Linux. A single * covers all interfaces.
             listener.Prefixes.Add($"http://*:{port}/");
+        }
     }
 
     private async Task AcceptLoopAsync(CancellationToken cancellationToken)
