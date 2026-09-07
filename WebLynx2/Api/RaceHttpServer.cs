@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using WebLynx2.Models;
 using WebLynx2.UnofficialResults;
+using WebLynx2.Utilities;
 
 namespace WebLynx2.Api;
 
@@ -37,22 +38,32 @@ public sealed class RaceHttpServer(
         }
     }
 
-    public Task StartAsync(int port)
+    /// <param name="port">TCP port to listen on.</param>
+    /// <param name="listenAddress">
+    /// IPv4 address to bind, or null/empty/"*" for all interfaces.
+    /// </param>
+    public Task StartAsync(int port, string? listenAddress = null)
     {
+        IReadOnlyList<string> prefixes;
         lock (_gate)
         {
             if (_listener?.IsListening == true)
                 throw new InvalidOperationException("Race HTTP server is already running.");
 
+            prefixes = NetworkAddressHelper.GetHttpListenerPrefixes(port, listenAddress);
             _listener = new HttpListener();
-            AddPrefixes(_listener, port);
+            foreach (var prefix in prefixes)
+                _listener.Prefixes.Add(prefix);
             _listener.Start();
 
             _cts = new CancellationTokenSource();
             _acceptLoop = AcceptLoopAsync(_cts.Token);
         }
 
-        logger.LogInformation("Race HTTP server listening on port {Port}", port);
+        logger.LogInformation(
+            "Race HTTP server listening on port {Port} ({Prefixes})",
+            port,
+            string.Join(", ", prefixes));
         return Task.CompletedTask;
     }
 
@@ -111,22 +122,6 @@ public sealed class RaceHttpServer(
     }
 
     public async ValueTask DisposeAsync() => await StopAsync().ConfigureAwait(false);
-
-    private static void AddPrefixes(HttpListener listener, int port)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            // HTTP.sys allows loopback and strong-wildcard registrations together.
-            listener.Prefixes.Add($"http://127.0.0.1:{port}/");
-            listener.Prefixes.Add($"http://+:{port}/");
-        }
-        else
-        {
-            // Socket-based HttpListener: binding both 127.0.0.1 and * on the same
-            // port fails with EADDRINUSE on Linux. A single * covers all interfaces.
-            listener.Prefixes.Add($"http://*:{port}/");
-        }
-    }
 
     private async Task AcceptLoopAsync(CancellationToken cancellationToken)
     {

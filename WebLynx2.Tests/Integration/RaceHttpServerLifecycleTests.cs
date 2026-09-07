@@ -24,6 +24,18 @@ public class RaceHttpServerLifecycleTests
     }
 
     [Fact]
+    public async Task Start_WithSpecificListenAddress_BindsOnlyThatAddress()
+    {
+        var port = GetFreePort();
+        await using var context = await CreateStartedServerAsync(port, "127.0.0.1");
+
+        using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}/") };
+        var response = await client.GetAsync("api/race/race-data");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Stop_ReleasesPort()
     {
         var port = GetFreePort();
@@ -48,7 +60,7 @@ public class RaceHttpServerLifecycleTests
         Assert.NotNull(exception);
     }
 
-    private static async Task<ServerContext> CreateStartedServerAsync(int port)
+    private static async Task<ServerContext> CreateStartedServerAsync(int port, string? listenAddress = null)
     {
         var raceState = RaceFeedComposition.CreateRaceStateManager(NullLoggerFactory.Instance);
         var keyValueStore = new KeyValueStoreService();
@@ -58,7 +70,7 @@ public class RaceHttpServerLifecycleTests
             keyValueStore,
             delayedDisplaySeconds: 5);
 
-        await server.StartAsync(port);
+        await server.StartAsync(port, listenAddress);
         return new ServerContext(server, raceState);
     }
 

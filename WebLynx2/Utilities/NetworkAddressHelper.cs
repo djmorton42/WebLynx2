@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
@@ -6,25 +7,15 @@ namespace WebLynx2.Utilities;
 public static class NetworkAddressHelper
 {
     /// <summary>
-    /// Returns IPv4 addresses on operational adapters, including loopback for same-machine clients.
+    /// Returns display strings for IPv4 addresses on operational adapters, including loopback.
     /// </summary>
     public static IReadOnlyList<string> GetLocalIPv4Addresses()
     {
         var result = new List<(bool IsLoopback, string Display)>();
 
-        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+        foreach (var address in EnumerateLocalIPv4Addresses())
         {
-            if (nic.OperationalStatus != OperationalStatus.Up)
-                continue;
-
-            foreach (var unicast in nic.GetIPProperties().UnicastAddresses)
-            {
-                if (unicast.Address.AddressFamily != AddressFamily.InterNetwork)
-                    continue;
-
-                var address = unicast.Address;
-                result.Add((System.Net.IPAddress.IsLoopback(address), $"{nic.Name}: {address}"));
-            }
+            result.Add((IPAddress.IsLoopback(address.Address), $"{address.AdapterName}: {address.Address}"));
         }
 
         result.Sort(static (a, b) =>
@@ -36,5 +27,57 @@ public static class NetworkAddressHelper
         });
 
         return result.ConvertAll(static e => e.Display);
+    }
+
+    /// <summary>
+    /// Builds HttpListener URL prefixes for a port and optional bind address.
+    /// Null/empty/"*" registers 127.0.0.1 plus every operational local IPv4 address
+    /// (avoids http://+/… which requires a Windows URL ACL).
+    /// </summary>
+    public static IReadOnlyList<string> GetHttpListenerPrefixes(int port, string? listenAddress = null)
+    {
+        if (port is < 1 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(port), port, "Port must be between 1 and 65535.");
+
+        if (string.IsNullOrWhiteSpace(listenAddress) || listenAddress is "*" or "+")
+        {
+            var addresses = EnumerateLocalIPv4Addresses()
+                .Select(a => a.Address.ToString())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(static a => a, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!addresses.Contains("127.0.0.1", StringComparer.OrdinalIgnoreCase))
+                addresses.Insert(0, "127.0.0.1");
+
+            return addresses.Select(a => $"http://{a}:{port}/").ToArray();
+        }
+
+        if (!IPAddress.TryParse(listenAddress.Trim(), out var ip) ||
+            ip.AddressFamily != AddressFamily.InterNetwork)
+        {
+            throw new ArgumentException(
+                $"Listen address must be an IPv4 address, got '{listenAddress}'.",
+                nameof(listenAddress));
+        }
+
+        return [$"http://{ip}:{port}/"];
+    }
+
+    private static IEnumerable<(string AdapterName, IPAddress Address)> EnumerateLocalIPv4Addresses()
+    {
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (nic.OperationalStatus != OperationalStatus.Up)
+                continue;
+
+            foreach (var unicast in nic.GetIPProperties().UnicastAddresses)
+            {
+                if (unicast.Address.AddressFamily != AddressFamily.InterNetwork)
+                    continue;
+
+                yield return (nic.Name, unicast.Address);
+            }
+        }
     }
 }
