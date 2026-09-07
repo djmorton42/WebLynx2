@@ -30,28 +30,16 @@ public static class NetworkAddressHelper
     }
 
     /// <summary>
-    /// Builds HttpListener URL prefixes for a port and optional bind address.
-    /// Null/empty/"*" registers 127.0.0.1 plus every operational local IPv4 address
-    /// (avoids http://+/… which requires a Windows URL ACL).
+    /// Builds a Kestrel listen URL for a port and optional bind address.
+    /// Null/empty/"*" binds all IPv4 interfaces (0.0.0.0).
     /// </summary>
-    public static IReadOnlyList<string> GetHttpListenerPrefixes(int port, string? listenAddress = null)
+    public static string GetKestrelUrl(int port, string? listenAddress = null)
     {
         if (port is < 1 or > 65535)
             throw new ArgumentOutOfRangeException(nameof(port), port, "Port must be between 1 and 65535.");
 
         if (string.IsNullOrWhiteSpace(listenAddress) || listenAddress is "*" or "+")
-        {
-            var addresses = EnumerateLocalIPv4Addresses()
-                .Select(a => a.Address.ToString())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(static a => a, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (!addresses.Contains("127.0.0.1", StringComparer.OrdinalIgnoreCase))
-                addresses.Insert(0, "127.0.0.1");
-
-            return addresses.Select(a => $"http://{a}:{port}/").ToArray();
-        }
+            return $"http://0.0.0.0:{port}";
 
         if (!IPAddress.TryParse(listenAddress.Trim(), out var ip) ||
             ip.AddressFamily != AddressFamily.InterNetwork)
@@ -61,7 +49,7 @@ public static class NetworkAddressHelper
                 nameof(listenAddress));
         }
 
-        return [$"http://{ip}:{port}/"];
+        return $"http://{ip}:{port}";
     }
 
     private static IEnumerable<(string AdapterName, IPAddress Address)> EnumerateLocalIPv4Addresses()

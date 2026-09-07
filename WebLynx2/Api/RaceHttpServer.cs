@@ -1,5 +1,7 @@
-using System.Collections.Specialized;
 using System.Net;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WebLynx2.Models;
 using WebLynx2.UnofficialResults;
@@ -13,9 +15,7 @@ public sealed class RaceHttpServer : IAsyncDisposable
     private readonly RaceHttpApp _app;
     private readonly object _gate = new();
 
-    private HttpListener? _listener;
-    private CancellationTokenSource? _cts;
-    private Task? _acceptLoop;
+    private WebApplication? _webApp;
 
     public RaceHttpServer(
         ILogger<RaceHttpServer> logger,
@@ -42,132 +42,83 @@ public sealed class RaceHttpServer : IAsyncDisposable
         get
         {
             lock (_gate)
-                return _listener?.IsListening == true;
+                return _webApp is not null;
         }
     }
 
     /// <param name="port">TCP port to listen on.</param>
     /// <param name="listenAddress">
-    /// IPv4 address to bind, or null/empty/"*" for all interfaces.
+    /// IPv4 address to bind, or null/empty/"*" for all interfaces (0.0.0.0).
     /// </param>
-    public Task StartAsync(int port, string? listenAddress = null)
+    public async Task StartAsync(int port, string? listenAddress = null)
     {
-        IReadOnlyList<string> prefixes;
+        var url = NetworkAddressHelper.GetKestrelUrl(port, listenAddress);
+
+        WebApplication webApp;
         lock (_gate)
         {
-            if (_listener?.IsListening == true)
+            if (_webApp is not null)
                 throw new InvalidOperationException("Race HTTP server is already running.");
 
-            prefixes = NetworkAddressHelper.GetHttpListenerPrefixes(port, listenAddress);
-            _listener = new HttpListener();
-            foreach (var prefix in prefixes)
-                _listener.Prefixes.Add(prefix);
-            _listener.Start();
+            var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions
+            {
+                ApplicationName = typeof(RaceHttpServer).Assembly.GetName().Name
+            });
+            builder.WebHost.UseKestrel();
+            builder.WebHost.UseUrls(url);
+            builder.Logging.ClearProviders();
 
-            _cts = new CancellationTokenSource();
-            _acceptLoop = AcceptLoopAsync(_cts.Token);
+            webApp = builder.Build();
+            webApp.Run(HandleHttpContextAsync);
+            _webApp = webApp;
         }
 
-        _logger.LogInformation(
-            "Race HTTP server listening on port {Port} ({Prefixes})",
-            port,
-            string.Join(", ", prefixes));
-        return Task.CompletedTask;
+        try
+        {
+            await webApp.StartAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            lock (_gate)
+            {
+                if (ReferenceEquals(_webApp, webApp))
+                    _webApp = null;
+            }
+
+            await webApp.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+
+        _logger.LogInformation("Race HTTP server listening on {Url}", url);
     }
 
     public async Task StopAsync()
     {
-        Task? acceptLoop;
-        CancellationTokenSource? cts;
-        HttpListener? listener;
-
+        WebApplication? webApp;
         lock (_gate)
         {
-            acceptLoop = _acceptLoop;
-            cts = _cts;
-            listener = _listener;
-
-            _acceptLoop = null;
-            _cts = null;
-            _listener = null;
+            webApp = _webApp;
+            _webApp = null;
         }
 
-        if (listener is null)
+        if (webApp is null)
             return;
-
-        cts?.Cancel();
 
         try
         {
-            listener.Stop();
+            await webApp.StopAsync().ConfigureAwait(false);
         }
-        catch (HttpListenerException ex) when (ex.ErrorCode is 995 or 500)
+        finally
         {
-            // Listener already stopped during shutdown.
+            await webApp.DisposeAsync().ConfigureAwait(false);
         }
 
-        listener.Close();
-
-        if (acceptLoop is not null)
-        {
-            try
-            {
-                await acceptLoop.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (HttpListenerException)
-            {
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-        }
-
-        cts?.Dispose();
         _logger.LogInformation("Race HTTP server stopped");
     }
 
     public async ValueTask DisposeAsync() => await StopAsync().ConfigureAwait(false);
 
-    private async Task AcceptLoopAsync(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            HttpListener? listener;
-            lock (_gate)
-                listener = _listener;
-
-            if (listener is null || !listener.IsListening)
-                break;
-
-            try
-            {
-                var context = await listener.GetContextAsync().ConfigureAwait(false);
-                _ = Task.Run(() => HandleRequestAsync(context), cancellationToken);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (ObjectDisposedException)
-            {
-                break;
-            }
-            catch (HttpListenerException) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (HttpListenerException ex)
-            {
-                _logger.LogError(ex, "HTTP listener error");
-                break;
-            }
-        }
-    }
-
-    private async Task HandleRequestAsync(HttpListenerContext context)
+    private async Task HandleHttpContextAsync(HttpContext context)
     {
         try
         {
@@ -183,61 +134,48 @@ public sealed class RaceHttpServer : IAsyncDisposable
                 await WriteResponseAsync(context.Response, RaceHttpResponse.InternalServerError())
                     .ConfigureAwait(false);
             }
-            catch (HttpListenerException)
-            {
-            }
             catch (ObjectDisposedException)
             {
             }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 
-    private static RaceHttpRequest ToAppRequest(HttpListenerRequest request) =>
-        new()
-        {
-            Method = request.HttpMethod,
-            Path = request.Url?.AbsolutePath ?? "/",
-            Query = ToQueryDictionary(request.QueryString)
-        };
-
-    private static Dictionary<string, string> ToQueryDictionary(NameValueCollection query)
+    private static RaceHttpRequest ToAppRequest(HttpRequest request)
     {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var key in query.AllKeys)
+        var query = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in request.Query)
         {
-            if (key is null || result.ContainsKey(key))
+            if (query.ContainsKey(pair.Key))
                 continue;
 
-            result[key] = query[key] ?? "";
+            query[pair.Key] = pair.Value.ToString();
         }
 
-        return result;
+        return new RaceHttpRequest
+        {
+            Method = request.Method,
+            Path = request.Path.HasValue ? request.Path.Value! : "/",
+            Query = query
+        };
     }
 
-    private static async Task WriteResponseAsync(HttpListenerResponse response, RaceHttpResponse appResponse)
+    private static async Task WriteResponseAsync(HttpResponse response, RaceHttpResponse appResponse)
     {
         response.StatusCode = (int)appResponse.StatusCode;
 
         if (appResponse.Location is not null)
-            response.RedirectLocation = appResponse.Location;
+            response.Headers.Location = appResponse.Location;
 
         if (appResponse.ContentType is not null)
             response.ContentType = appResponse.ContentType;
 
         if (appResponse.CacheControl is not null)
-            response.Headers["Cache-Control"] = appResponse.CacheControl;
+            response.Headers.CacheControl = appResponse.CacheControl;
 
-        try
-        {
-            if (appResponse.Body.Length > 0)
-            {
-                response.ContentLength64 = appResponse.Body.Length;
-                await response.OutputStream.WriteAsync(appResponse.Body).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            response.Close();
-        }
+        if (appResponse.Body.Length > 0)
+            await response.Body.WriteAsync(appResponse.Body).ConfigureAwait(false);
     }
 }
