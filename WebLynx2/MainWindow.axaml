@@ -11,6 +11,7 @@
         Icon="/Assets/logo.ico"
         Width="1400" Height="792"
         MinWidth="820"
+        FontSize="12"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <SolidColorBrush x:Key="StatusNotListeningBrush" Color="#B71C1C" />
@@ -18,30 +19,30 @@
         <SolidColorBrush x:Key="StatusConnectedBrush" Color="#1B5E20" />
         <SolidColorBrush x:Key="StatusBadgeForegroundBrush" Color="#FFFFFF" />
     </Window.Resources>
-    <DockPanel Margin="16">
+    <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Bottom"
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
-                    Margin="0,16,0,0"
-                    Spacing="12">
+                    Margin="0,10,0,0"
+                    Spacing="8">
             <Button Content="Save Changes"
-                    MinWidth="120"
+                    MinWidth="100"
                     Click="SaveChanges_OnClick" />
             <Button Content="Exit"
-                    MinWidth="120"
+                    MinWidth="100"
                     Click="ExitButton_OnClick" />
         </StackPanel>
 
         <TabControl>
             <TabItem Header="Configuration">
         <Grid RowDefinitions="Auto,*"
-              RowSpacing="16"
+              RowSpacing="10"
               HorizontalAlignment="Stretch"
               VerticalAlignment="Stretch"
               MinHeight="0">
             <Grid Grid.Row="0"
-                  ColumnDefinitions="*,400"
-                  ColumnSpacing="16"
+                  ColumnDefinitions="*,380"
+                  ColumnSpacing="10"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch">
             <!-- Event Configuration (left) -->
@@ -49,41 +50,38 @@
                     BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                     BorderThickness="1"
                     CornerRadius="4"
-                    Padding="14,12"
+                    Padding="10,8"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch">
-                <StackPanel Spacing="12">
+                <StackPanel Spacing="6">
                     <TextBlock Text="Event Configuration"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,2" />
+                               FontWeight="SemiBold" />
                     <Grid ColumnDefinitions="Auto,*"
-                          ColumnSpacing="12"
-                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                          ColumnSpacing="8"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                          RowSpacing="4">
                         <TextBlock Grid.Row="0" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Event Title" />
                         <TextBox x:Name="EventTitleTextBox"
                                  Grid.Row="0" Grid.Column="1"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,0,10" />
+                                 VerticalAlignment="Center" />
 
                         <TextBlock Grid.Row="1" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Event Subtitle" />
                         <TextBox x:Name="EventSubtitleTextBox"
                                  Grid.Row="1" Grid.Column="1"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,0,10" />
+                                 VerticalAlignment="Center" />
 
                         <TextBlock Grid.Row="2" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Delayed Lap Display (s)" />
                         <NumericUpDown x:Name="DelayedDisplaySecondsNumericUpDown"
                                        Grid.Row="2" Grid.Column="1"
-                                       Width="140"
+                                       Width="120"
                                        HorizontalAlignment="Left"
                                        VerticalAlignment="Center"
-                                       Margin="0,0,0,10"
                                        Minimum="0"
                                        Maximum="60"
                                        Increment="1"
@@ -98,7 +96,7 @@
                                    Text="Results Configuration"
                                    FontWeight="SemiBold"
                                    HorizontalAlignment="Left"
-                                   Margin="0,8,0,4" />
+                                   Margin="0,4,0,0" />
 
                         <TextBlock Grid.Row="4" Grid.Column="0"
                                    VerticalAlignment="Center"
@@ -106,14 +104,13 @@
                         <Grid Grid.Row="4"
                               Grid.Column="1"
                               ColumnDefinitions="*,Auto"
-                              ColumnSpacing="8"
-                              Margin="0,0,0,10">
+                              ColumnSpacing="6">
                             <TextBox x:Name="UnofficialResultsPathTextBox"
                                      Grid.Column="0"
                                      VerticalAlignment="Center" />
                             <Button Grid.Column="1"
                                     Content="Browse…"
-                                    MinWidth="80"
+                                    MinWidth="70"
                                     VerticalAlignment="Center"
                                     Click="UnofficialResultsPathBrowse_OnClick" />
                         </Grid>
@@ -125,15 +122,14 @@
                         <Grid Grid.Row="5"
                               Grid.Column="1"
                               ColumnDefinitions="*,Auto"
-                              ColumnSpacing="8"
-                              Margin="0,0,0,10">
+                              ColumnSpacing="6">
                             <TextBox x:Name="OfficialResultsPathTextBox"
                                      Grid.Column="0"
                                      VerticalAlignment="Center"
                                      IsEnabled="False" />
                             <Button Grid.Column="1"
                                     Content="Browse…"
-                                    MinWidth="80"
+                                    MinWidth="70"
                                     VerticalAlignment="Center"
                                     IsEnabled="False"
                                     Click="OfficialResultsPathBrowse_OnClick" />
@@ -146,7 +142,6 @@
                                   Grid.Row="6" Grid.Column="1"
                                   HorizontalAlignment="Left"
                                   VerticalAlignment="Center"
-                                  Margin="0,0,0,10"
                                   SelectedIndex="0">
                             <ComboBoxItem Content="ISO-8859-1" />
                             <ComboBoxItem Content="UTF-8" />
@@ -158,10 +153,9 @@
                                    Text="Results Polling Interval (s)" />
                         <NumericUpDown x:Name="ResultsPollingIntervalNumericUpDown"
                                        Grid.Row="7" Grid.Column="1"
-                                       Width="140"
+                                       Width="120"
                                        HorizontalAlignment="Left"
                                        VerticalAlignment="Center"
-                                       Margin="0,0,0,10"
                                        Minimum="1"
                                        Maximum="3600"
                                        Increment="1"
@@ -173,57 +167,54 @@
                 </StackPanel>
             </Border>
 
-            <!-- Server Configuration (right, 400px column) -->
+            <!-- Server Configuration (right) -->
             <Border Grid.Column="1"
                     BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                     BorderThickness="1"
                     CornerRadius="4"
-                    Padding="14,12"
+                    Padding="10,8"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch">
-                <StackPanel Spacing="12">
+                <StackPanel Spacing="6">
                     <TextBlock Text="Server Configuration"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,2" />
+                               FontWeight="SemiBold" />
                     <Grid ColumnDefinitions="Auto,*"
-                          ColumnSpacing="12"
-                          RowDefinitions="Auto,Auto,Auto,Auto">
+                          ColumnSpacing="8"
+                          RowDefinitions="Auto,Auto,Auto,Auto"
+                          RowSpacing="4">
                         <TextBlock Grid.Row="0" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="FinishLynx Results Port" />
                         <TextBox x:Name="ResultsPortTextBox"
                                  Grid.Row="0" Grid.Column="1"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,0,10" />
+                                 VerticalAlignment="Center" />
 
                         <TextBlock Grid.Row="1" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="FinishLynx Clock Port" />
                         <TextBox x:Name="ClockPortTextBox"
                                  Grid.Row="1" Grid.Column="1"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,0,10" />
+                                 VerticalAlignment="Center" />
 
                         <TextBlock Grid.Row="2" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="HTTP Port" />
                         <TextBox x:Name="HttpPortTextBox"
                                  Grid.Row="2" Grid.Column="1"
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,0,10" />
+                                 VerticalAlignment="Center" />
 
                         <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Right"
-                                    Margin="0,4,0,0"
-                                    Spacing="10">
+                                    Margin="0,2,0,0"
+                                    Spacing="6">
                             <Button x:Name="StartServerButton"
                                     Content="Start Server"
-                                    MinWidth="110"
+                                    MinWidth="90"
                                     Click="StartServerButton_OnClick" />
                             <Button x:Name="StopServerButton"
                                     Content="Stop Server"
-                                    MinWidth="110"
+                                    MinWidth="90"
                                     IsEnabled="False"
                                     Click="StopServerButton_OnClick" />
                         </StackPanel>
@@ -231,13 +222,14 @@
 
                     <TextBlock Text="Network Addresses"
                                FontWeight="SemiBold"
-                               Margin="0,8,0,4" />
+                               Margin="0,4,0,0" />
                     <ItemsControl ItemsSource="{Binding NetworkAddresses}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding}"
                                            FontFamily="Menlo, Monaco, Consolas, monospace"
-                                           Margin="0,0,0,2" />
+                                           FontSize="11"
+                                           Margin="0,0,0,1" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -248,19 +240,19 @@
 
                     <TextBlock Text="Status"
                                FontWeight="SemiBold"
-                               Margin="0,8,0,4" />
+                               Margin="0,4,0,0" />
                     <Grid ColumnDefinitions="Auto,*"
-                          ColumnSpacing="12"
+                          ColumnSpacing="8"
                           RowDefinitions="Auto,Auto,Auto"
-                          RowSpacing="8">
+                          RowSpacing="4">
                         <TextBlock Grid.Row="0" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Results Status" />
                         <Border x:Name="ResultsStatusBadge"
                                 Grid.Row="0" Grid.Column="1"
                                 Background="{StaticResource StatusNotListeningBrush}"
-                                CornerRadius="4"
-                                Padding="10,5"
+                                CornerRadius="3"
+                                Padding="6,2"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center">
                             <TextBlock x:Name="ResultsStatusTextBlock"
@@ -275,8 +267,8 @@
                         <Border x:Name="ClockStatusBadge"
                                 Grid.Row="1" Grid.Column="1"
                                 Background="{StaticResource StatusNotListeningBrush}"
-                                CornerRadius="4"
-                                Padding="10,5"
+                                CornerRadius="3"
+                                Padding="6,2"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center">
                             <TextBlock x:Name="ClockStatusTextBlock"
@@ -291,8 +283,8 @@
                         <Border x:Name="HttpStatusBadge"
                                 Grid.Row="2" Grid.Column="1"
                                 Background="{StaticResource StatusNotListeningBrush}"
-                                CornerRadius="4"
-                                Padding="10,5"
+                                CornerRadius="3"
+                                Padding="6,2"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center">
                             <TextBlock x:Name="HttpStatusTextBlock"
@@ -310,30 +302,30 @@
                     BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                     BorderThickness="1"
                     CornerRadius="4"
-                    Padding="14,12"
+                    Padding="10,8"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     MinHeight="0">
                 <Grid RowDefinitions="Auto,*"
                       ColumnDefinitions="*,*"
-                      ColumnSpacing="16"
+                      ColumnSpacing="10"
                       MinHeight="0">
                     <TextBlock Grid.Row="0"
                                Grid.Column="0"
                                Grid.ColumnSpan="2"
                                Text="View Configuration"
                                FontWeight="SemiBold"
-                               Margin="0,0,0,10" />
+                               Margin="0,0,0,6" />
 
                     <!-- Same header row height on both columns so list tops align -->
                     <Grid Grid.Row="1"
                           Grid.Column="0"
                           RowDefinitions="Auto,*"
-                          RowSpacing="6"
+                          RowSpacing="4"
                           VerticalAlignment="Stretch"
                           MinHeight="0">
                         <Grid Grid.Row="0"
-                              MinHeight="36"
+                              MinHeight="24"
                               VerticalAlignment="Top">
                             <TextBlock Text="Loaded Views"
                                        FontWeight="SemiBold"
@@ -347,11 +339,11 @@
                                  VerticalAlignment="Stretch"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                 Padding="0,0,0,8"
+                                 Padding="0,0,0,4"
                                  SelectionChanged="LoadedViewsListBox_OnSelectionChanged">
                             <ListBox.Styles>
                                 <Style Selector="ListBoxItem">
-                                    <Setter Property="Padding" Value="6,3" />
+                                    <Setter Property="Padding" Value="4,1" />
                                     <Setter Property="MinHeight" Value="0" />
                                 </Style>
                             </ListBox.Styles>
@@ -361,11 +353,11 @@
                     <Grid Grid.Row="1"
                           Grid.Column="1"
                           RowDefinitions="Auto,*"
-                          RowSpacing="6"
+                          RowSpacing="4"
                           VerticalAlignment="Stretch"
                           MinHeight="0">
                         <Grid Grid.Row="0"
-                              MinHeight="36"
+                              MinHeight="24"
                               VerticalAlignment="Top">
                             <TextBlock Text="View Properties"
                                        FontWeight="SemiBold"
@@ -378,22 +370,22 @@
                                  VerticalAlignment="Stretch"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                 Padding="0,0,0,8">
+                                 Padding="0,0,0,4">
                             <ListBox.Styles>
                                 <Style Selector="ListBoxItem">
-                                    <Setter Property="Padding" Value="6,3" />
+                                    <Setter Property="Padding" Value="4,1" />
                                     <Setter Property="MinHeight" Value="0" />
                                 </Style>
                             </ListBox.Styles>
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="local:ViewPropertyRow">
                                     <Grid ColumnDefinitions="2*,2*,3*"
-                                          ColumnSpacing="8">
+                                          ColumnSpacing="6">
                                         <TextBox Grid.Column="0"
                                                  Text="{Binding Key}"
                                                  Watermark="Key"
                                                  VerticalAlignment="Center"
-                                                 MinHeight="28"
+                                                 MinHeight="22"
                                                  IsReadOnly="True" />
                                         <controls:ViewPropertyValueEditor Grid.Column="1"
                                                                             VerticalAlignment="Center"
@@ -403,7 +395,7 @@
                                                    VerticalAlignment="Center"
                                                    TextWrapping="Wrap"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                                   FontSize="12" />
+                                                   FontSize="11" />
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -418,42 +410,42 @@
                 <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                         BorderThickness="1"
                         CornerRadius="4"
-                        Padding="14,12"
+                        Padding="10,8"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Top">
-                    <StackPanel Spacing="12">
+                    <StackPanel Spacing="8">
                         <TextBlock Text="Forced Announcement"
                                    FontWeight="SemiBold" />
                         <TextBlock Text="When applied, this text is published on race-data instead of the FinishLynx announcement. Clear to resume FinishLynx messages."
                                    TextWrapping="Wrap"
                                    Opacity="0.85"
-                                   FontSize="12" />
+                                   FontSize="11" />
                         <TextBox x:Name="ForcedAnnouncementTextBox"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
-                                 MinHeight="120"
+                                 MinHeight="90"
                                  Watermark="Override announcement shown on the announcements view"
                                  TextChanged="ForcedAnnouncementTextBox_OnTextChanged" />
                         <StackPanel Orientation="Horizontal"
-                                    Spacing="8">
+                                    Spacing="6">
                             <Button Content="Apply"
-                                    MinWidth="80"
+                                    MinWidth="70"
                                     Click="ForcedAnnouncementApply_OnClick" />
                             <Button Content="Clear"
-                                    MinWidth="80"
+                                    MinWidth="70"
                                     Click="ForcedAnnouncementClear_OnClick" />
                             <Button Content="Add to Favourites"
-                                    MinWidth="120"
+                                    MinWidth="100"
                                     Click="AnnouncementAddFavourite_OnClick" />
                             <Button x:Name="AnnouncementRemoveFavouriteButton"
                                     Content="Remove From Favourites"
-                                    MinWidth="140"
+                                    MinWidth="120"
                                     IsVisible="False"
                                     Click="AnnouncementRemoveFavourite_OnClick" />
                             <TextBlock x:Name="ForcedAnnouncementStatusTextBlock"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                       FontSize="12"
+                                       FontSize="11"
                                        Text="" />
                         </StackPanel>
                         <ComboBox x:Name="AnnouncementFavouritesComboBox"
@@ -466,18 +458,18 @@
 
             <TabItem Header="Race State">
                 <Grid RowDefinitions="Auto,Auto,*"
-                      RowSpacing="12"
+                      RowSpacing="8"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch">
                     <Border Grid.Row="0"
                             BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
-                            Padding="14,12">
+                            Padding="10,8">
                         <Grid ColumnDefinitions="Auto,*"
-                              ColumnSpacing="16"
+                              ColumnSpacing="10"
                               RowDefinitions="Auto,Auto,Auto,Auto"
-                              RowSpacing="8">
+                              RowSpacing="4">
                             <TextBlock Grid.Row="0" Grid.Column="0"
                                        Text="Race Status"
                                        FontWeight="SemiBold" />
@@ -512,13 +504,13 @@
                             BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
-                            Padding="14,12">
-                        <StackPanel Spacing="6">
+                            Padding="10,8">
+                        <StackPanel Spacing="4">
                             <TextBlock Text="Announcement"
                                        FontWeight="SemiBold" />
                             <TextBlock x:Name="RaceAnnouncementTextBlock"
                                        TextWrapping="Wrap"
-                                       MinHeight="20"
+                                       MinHeight="16"
                                        FontFamily="Menlo, Monaco, Consolas, monospace" />
                         </StackPanel>
                     </Border>
@@ -527,17 +519,17 @@
                             BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                             BorderThickness="1"
                             CornerRadius="4"
-                            Padding="14,12"
+                            Padding="10,8"
                             VerticalAlignment="Stretch">
                         <Grid RowDefinitions="Auto,Auto,*"
-                              RowSpacing="8">
+                              RowSpacing="4">
                             <TextBlock Grid.Row="0"
                                        Text="Racers"
                                        FontWeight="SemiBold" />
                             <Grid Grid.Row="1"
                                   ColumnDefinitions="40,2*,2*,50,50,60,80,80,55"
-                                  ColumnSpacing="10"
-                                  Margin="6,0,6,0">
+                                  ColumnSpacing="8"
+                                  Margin="4,0,4,0">
                                 <TextBlock Grid.Column="0" Text="Lane" FontWeight="SemiBold" Opacity="0.8" />
                                 <TextBlock Grid.Column="1" Text="Name" FontWeight="SemiBold" Opacity="0.8" />
                                 <TextBlock Grid.Column="2" Text="Affiliation" FontWeight="SemiBold" Opacity="0.8" />
@@ -552,19 +544,19 @@
                             </Grid>
                             <ListBox Grid.Row="2"
                                      ItemsSource="{Binding RaceRacers}"
-                                     MinHeight="200"
+                                     MinHeight="160"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Stretch">
                                 <ListBox.Styles>
                                     <Style Selector="ListBoxItem">
-                                        <Setter Property="Padding" Value="6,2" />
+                                        <Setter Property="Padding" Value="4,1" />
                                         <Setter Property="MinHeight" Value="0" />
                                     </Style>
                                 </ListBox.Styles>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="local:RaceRacerDisplayRow">
                                         <Grid ColumnDefinitions="40,2*,2*,50,50,60,80,80,55"
-                                              ColumnSpacing="10">
+                                              ColumnSpacing="8">
                                             <TextBlock Grid.Column="0"
                                                        Text="{Binding Lane}"
                                                        FontFamily="Menlo, Monaco, Consolas, monospace"
