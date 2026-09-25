@@ -392,6 +392,114 @@ WebLynx.getRaceIdentity = function(data) {
 };
 
 /**
+ * Fade race content out, hold blank, then fade in when race identity changes.
+ * Same-identity updates paint immediately. The first paint has no hold.
+ *
+ * @param {object} options
+ * @param {() => Array<Element|null|undefined>} options.getFadeElements
+ * @param {() => void} [options.onBlank] called after fade-out, before the hold
+ * @param {number} [options.fadeMs=500]
+ * @param {number} [options.holdMs=3000]
+ * @param {string} [options.fadedClass='is-race-faded-out']
+ * @returns {{ run: function(object, function(object): void): void }}
+ */
+WebLynx.createRaceIdentityTransition = function(options) {
+  options = options || {};
+  const fadeMs = Number(options.fadeMs) > 0 ? Number(options.fadeMs) : 500;
+  const holdMs = Number(options.holdMs) >= 0 ? Number(options.holdMs) : 3000;
+  const fadedClass = options.fadedClass || 'is-race-faded-out';
+  const getFadeElements = options.getFadeElements;
+  const onBlank = typeof options.onBlank === 'function' ? options.onBlank : null;
+
+  let paintedIdentity = null;
+  let busy = false;
+  let pending = null;
+
+  function setFaded(faded) {
+    const els = typeof getFadeElements === 'function' ? getFadeElements() : [];
+    for (let i = 0; i < els.length; i++) {
+      if (els[i]) {
+        els[i].classList.toggle(fadedClass, !!faded);
+      }
+    }
+  }
+
+  function paintLatest() {
+    const job = pending;
+    pending = null;
+    if (!job) {
+      busy = false;
+      return;
+    }
+
+    paintedIdentity = WebLynx.getRaceIdentity(job.data);
+    job.paint(job.data);
+    setFaded(true);
+
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        setFaded(false);
+        setTimeout(function() {
+          busy = false;
+          if (!pending) {
+            return;
+          }
+
+          const nextIdentity = WebLynx.getRaceIdentity(pending.data);
+          if (nextIdentity !== paintedIdentity) {
+            beginTransition();
+            return;
+          }
+
+          const sameRaceJob = pending;
+          pending = null;
+          paintedIdentity = nextIdentity;
+          sameRaceJob.paint(sameRaceJob.data);
+        }, fadeMs);
+      });
+    });
+  }
+
+  function beginTransition() {
+    busy = true;
+    setFaded(true);
+    setTimeout(function() {
+      if (onBlank) {
+        onBlank();
+      }
+      setTimeout(paintLatest, holdMs);
+    }, fadeMs);
+  }
+
+  return {
+    /**
+     * @param {object} data race payload
+     * @param {function(object): void} paintFn renders the view from data
+     */
+    run: function(data, paintFn) {
+      const identity = WebLynx.getRaceIdentity(data);
+      const isFirstPaint = paintedIdentity === null;
+      const identityChanged = !isFirstPaint && identity !== paintedIdentity;
+
+      if (busy) {
+        pending = { data: data, paint: paintFn };
+        return;
+      }
+
+      // First paint, same race, or coming from an empty identity: paint immediately.
+      if (!identityChanged || !paintedIdentity) {
+        paintedIdentity = identity;
+        paintFn(data);
+        return;
+      }
+
+      pending = { data: data, paint: paintFn };
+      beginTransition();
+    }
+  };
+};
+
+/**
  * Best-effort laps remaining for milestone logic (prefers live count over delayed display).
  * @returns {number|null}
  */
