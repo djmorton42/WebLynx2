@@ -178,6 +178,60 @@ WebLynx.formatTime = function(timeSpanString) {
   return `${formattedMinutes}:${formattedSeconds}.${formattedMilliseconds}`;
 };
 
+/**
+ * True when a FinishLynx time string is absent or exactly zero (unused / placeholder).
+ * @param {string|null|undefined} timeSpanString
+ * @returns {boolean}
+ */
+WebLynx.isMissingRaceTime = function(timeSpanString) {
+  if (timeSpanString === null || timeSpanString === undefined) {
+    return true;
+  }
+
+  const raw = String(timeSpanString).trim();
+  if (raw === '') {
+    return true;
+  }
+
+  const parts = raw.split(':');
+  if (parts.length !== 3) {
+    return true;
+  }
+
+  const hours = parseInt(parts[0], 10) || 0;
+  const minutes = parseInt(parts[1], 10) || 0;
+  const secondsParts = parts[2].split('.');
+  const seconds = parseInt(secondsParts[0], 10) || 0;
+
+  let fractional = 0;
+  if (secondsParts[1]) {
+    fractional = parseInt(secondsParts[1].replace(/\D/g, '').padEnd(7, '0').substring(0, 7), 10) || 0;
+  }
+
+  return hours === 0 && minutes === 0 && seconds === 0 && fractional === 0;
+};
+
+/**
+ * Start list / results row: official finish time, then cumulative split, else a pending label.
+ * @param {object|null|undefined} racer
+ * @param {{ pendingLabel?: string }} [options]
+ * @returns {{ text: string, pending: boolean }}
+ */
+WebLynx.getResultsRowTimeDisplay = function(racer, options) {
+  options = options || {};
+  const pendingLabel = options.pendingLabel || 'Pending';
+
+  if (racer && !WebLynx.isMissingRaceTime(racer.finalTime)) {
+    return { text: WebLynx.formatTime(racer.finalTime), pending: false };
+  }
+
+  if (racer && !WebLynx.isMissingRaceTime(racer.cumulativeSplitTime)) {
+    return { text: WebLynx.formatTime(racer.cumulativeSplitTime), pending: false };
+  }
+
+  return { text: pendingLabel, pending: true };
+};
+
 WebLynx.formatRaceTime = function(timeSpanString) {
   if (!timeSpanString) return '00:00.0';
 
