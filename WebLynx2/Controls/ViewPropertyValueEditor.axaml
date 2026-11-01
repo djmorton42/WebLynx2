@@ -12,7 +12,7 @@
 
         <NumericUpDown IsVisible="{Binding IsIntegerType}"
                        Value="{Binding IntegerValue, Mode=TwoWay}"
-                       Minimum="0"
+                       Minimum="-999999"
                        Maximum="999999"
                        FormatString="0"
                        VerticalAlignment="Center"
