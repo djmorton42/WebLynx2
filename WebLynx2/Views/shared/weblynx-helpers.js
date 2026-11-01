@@ -486,8 +486,20 @@ WebLynx.createRaceIdentityTransition = function(options) {
         return;
       }
 
-      // First paint, same race, or coming from an empty identity: paint immediately.
-      if (!identityChanged || !paintedIdentity) {
+      if (!identityChanged) {
+        paintedIdentity = identity;
+        paintFn(data);
+        return;
+      }
+
+      // Empty identity → first real heat: paint immediately (view fades in on reveal).
+      if (paintedIdentity === '' && identity !== '') {
+        paintedIdentity = identity;
+        paintFn(data);
+        return;
+      }
+
+      if (paintedIdentity === null) {
         paintedIdentity = identity;
         paintFn(data);
         return;
