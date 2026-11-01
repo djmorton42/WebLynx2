@@ -1,4 +1,5 @@
 using System.Text;
+using WebLynx2.People;
 using WebLynx2.UnofficialResults;
 using Xunit;
 
@@ -169,6 +170,67 @@ public class UnofficialResultsCatalogTests : IDisposable
         await catalog.RefreshAsync(_dir);
         Assert.Null(catalog.GetRaceByNumber("ZZZ"));
     }
+
+    [Fact]
+    public async Task Refresh_RelayLif_ResolvesRosterFromPeopleFile()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_dir, "08A.lif"), RelayLif, Encoding.Latin1);
+        var people = PeopleFile("104, Wong, Eugene, Toronto\n245, Wu, Alwyn, Newmarket\n");
+        var catalog = new UnofficialResultsCatalog { FileEncoding = Encoding.Latin1, People = people };
+
+        await catalog.RefreshAsync(_dir);
+
+        var team = catalog.GetRaceByNumber("8A")!.Racers[0];
+        Assert.Equal("TEAM LIGHT BLUE", team.Name);
+        Assert.Equal("Eugene", team.Roster[0].FirstName);
+        Assert.Equal("Wong", team.Roster[0].LastName);
+        Assert.Equal("Alwyn", team.Roster[1].FirstName);
+        Assert.Equal("1222", team.Roster[2].Id);
+        Assert.Equal("", team.Roster[2].FirstName);
+        Assert.Equal("", team.Roster[2].LastName);
+
+        var individual = catalog.GetRaceByNumber("8A")!.Racers[1];
+        Assert.Equal("Eugene Wong", individual.Name);
+        Assert.Empty(individual.Roster);
+    }
+
+    [Fact]
+    public async Task Refresh_PeopleFileEdit_UpdatesRosterWhenLifFileIsUnchanged()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_dir, "08A.lif"), RelayLif, Encoding.Latin1);
+        var peoplePath = Path.Combine(_dir, "Lynx.ppl");
+        var people = PeopleFile("104, Wong, Eugene, Toronto\n", peoplePath);
+        var catalog = new UnofficialResultsCatalog { FileEncoding = Encoding.Latin1, People = people };
+        await catalog.RefreshAsync(_dir);
+        Assert.Equal("Eugene", catalog.GetRaceByNumber("8A")!.Racers[0].Roster[0].FirstName);
+
+        var previousWrite = File.GetLastWriteTimeUtc(peoplePath);
+        File.WriteAllText(peoplePath, "104, Wong, Gene, Toronto\n", Encoding.Latin1);
+        File.SetLastWriteTimeUtc(peoplePath, previousWrite.AddMinutes(1));
+        await catalog.RefreshAsync(_dir);
+
+        var team = catalog.GetRaceByNumber("8A")!.Racers[0];
+        Assert.Equal("Gene", team.Roster[0].FirstName);
+        Assert.Equal("TEAM LIGHT BLUE", team.Name);
+        Assert.Equal("Eugene Wong", catalog.GetRaceByNumber("8A")!.Racers[1].Name);
+    }
+
+    private LynxPeopleFile PeopleFile(string text, string? path = null)
+    {
+        path ??= Path.Combine(_dir, "Lynx.ppl");
+        File.WriteAllText(path, text, Encoding.Latin1);
+        return new LynxPeopleFile
+        {
+            FilePath = path,
+            FileEncoding = Encoding.Latin1
+        };
+    }
+
+    private const string RelayLif = """
+        8A,1,1,"Open Mixed Relay",,,,,,,10:59:07.1012
+        1,10,1,TEAM LIGHT BLUE,|104|245|1222|,SSO,46.218,,
+        2,1251,2,Wong,Eugene,Toronto,46.529,,
+        """;
 
     [Fact]
     public async Task Refresh_IgnoresSubdirectories()

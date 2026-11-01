@@ -53,11 +53,44 @@ public class LifFileParserTests
         Assert.Equal("Eugene", first.FirstName);
         Assert.Equal("Eugene Wong", first.Name);
         Assert.Equal("Toronto", first.Affiliation);
+        Assert.Empty(first.RelayMemberIds);
         Assert.Equal("46.218", first.FinishTimeRaw);
         Assert.Equal("46.218", first.FinishTimeFormatted);
         Assert.True(first.HasFinishTime);
         Assert.False(first.IsSpecialPosition);
         Assert.Equal(TimeSpan.FromSeconds(46.218), first.FinishTime);
+    }
+
+    [Fact]
+    public void ParseText_RelayFirstName_PublishesTeamNameAndMemberIds()
+    {
+        const string lif = """
+            8A,1,1,"Open Mixed Relay",,,,,,,10:59:07.1012
+            1,10,1,TEAM LIGHT BLUE,|104|245|1222|,SSO,46.218,,
+            2,11,2,TEAM RED,|507|,SSO,47.100,,
+            3,1251,3,Wong,Eugene,Toronto,48.000,,
+            """;
+
+        var result = LifFileParser.ParseText(lif, "/tmp/relay.lif", FixedUpdated);
+
+        Assert.NotNull(result);
+        var lightBlue = result!.Racers[0];
+        Assert.Equal("TEAM LIGHT BLUE", lightBlue.Name);
+        Assert.Equal("", lightBlue.FirstName);
+        Assert.Equal("TEAM LIGHT BLUE", lightBlue.LastName);
+        Assert.Equal(["104", "245", "1222"], lightBlue.RelayMemberIds);
+        Assert.Equal("SSO", lightBlue.Affiliation);
+        Assert.DoesNotContain("|", lightBlue.Name, StringComparison.Ordinal);
+
+        var red = result.Racers[1];
+        Assert.Equal("TEAM RED", red.Name);
+        Assert.Equal(["507"], red.RelayMemberIds);
+
+        var individual = result.Racers[2];
+        Assert.Equal("Eugene Wong", individual.Name);
+        Assert.Equal("Eugene", individual.FirstName);
+        Assert.Equal("Wong", individual.LastName);
+        Assert.Empty(individual.RelayMemberIds);
     }
 
     [Fact]

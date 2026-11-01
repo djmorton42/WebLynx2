@@ -57,6 +57,27 @@ public class RaceDataJsonSerializationTests
     }
 
     [Fact]
+    public void RelayRoster_SerializesCamelCaseMemberNames()
+    {
+        var race = RaceTestDataFactory.CreateSampleRace();
+        race.Racers[0].Name = "TEAM RED";
+        race.Racers[0].Roster =
+        [
+            new RelayRosterMember { Id = "104", FirstName = "Eugene", LastName = "Wong" }
+        ];
+
+        var json = JsonSerializer.Serialize(
+            new RaceDataApiMapper(new KeyValueStoreService(), delayedDisplaySeconds: 5).Map(race, "place"),
+            SerializerOptions);
+
+        Assert.Contains("\"roster\"", json);
+        Assert.Contains("\"id\":\"104\"", json.Replace(" ", ""));
+        Assert.Contains("\"firstName\":\"Eugene\"", json.Replace(" ", ""));
+        Assert.Contains("\"lastName\":\"Wong\"", json.Replace(" ", ""));
+        Assert.DoesNotContain("|104|", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ViewConfig_SerializesNestedObjectsAndNumbers()
     {
         var store = new KeyValueStoreService();

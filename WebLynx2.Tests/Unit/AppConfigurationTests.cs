@@ -60,6 +60,29 @@ public class AppConfigurationTests
     }
 
     [Fact]
+    public void SaveTo_ThenLoadFrom_RoundTripsPeopleFilePath()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "WebLynx2AppSettings_" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var settings = new AppSettings
+            {
+                Event = { PeopleFilePath = "/tmp/meet/Lynx.ppl" }
+            };
+
+            AppConfiguration.SaveTo(path, settings);
+            var loaded = AppConfiguration.LoadFrom(path);
+
+            Assert.Equal("/tmp/meet/Lynx.ppl", loaded.Event.PeopleFilePath);
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void LoadFrom_MissingFile_ReturnsDefaults()
     {
         var path = Path.Combine(Path.GetTempPath(), "WebLynx2Missing_" + Guid.NewGuid().ToString("N") + ".json");

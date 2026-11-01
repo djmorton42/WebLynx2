@@ -108,6 +108,32 @@ public class RaceDataApiMapperTests
     }
 
     [Fact]
+    public void Map_RelayRoster_IsCopiedAndIndividualsStayEmpty()
+    {
+        var race = RaceTestDataFactory.CreateSampleRace();
+        var relay = race.Racers.First(r => r.Lane == 1);
+        relay.Name = "TEAM RED";
+        relay.Roster =
+        [
+            new RelayRosterMember { Id = "104", FirstName = "Eugene", LastName = "Wong" },
+            new RelayRosterMember { Id = "999", FirstName = "", LastName = "" }
+        ];
+
+        var response = _mapper.Map(race, "place");
+        var mappedRelay = response.Racers.First(r => r.Lane == 1);
+        var individual = response.Racers.First(r => r.Lane == 2);
+
+        Assert.Equal("TEAM RED", mappedRelay.Name);
+        Assert.Equal("104", mappedRelay.Roster[0].Id);
+        Assert.Equal("Eugene", mappedRelay.Roster[0].FirstName);
+        Assert.Equal("Wong", mappedRelay.Roster[0].LastName);
+        Assert.Equal("999", mappedRelay.Roster[1].Id);
+        Assert.Equal("", mappedRelay.Roster[1].LastName);
+        Assert.Equal("Jane Doe", individual.Name);
+        Assert.Empty(individual.Roster);
+    }
+
+    [Fact]
     public void Map_HasFirstCrossing_TrueWhenSplitTimesPresent()
     {
         var race = RaceTestDataFactory.CreateSampleRace();
