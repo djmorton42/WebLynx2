@@ -407,6 +407,59 @@ WebLynx.getActiveRacers = function(racers) {
 };
 
 /**
+ * Client-side sort mirroring GET /api/race/race-data?sortBy=place|lane (RacerSorter).
+ * @param {Array<object>} racers
+ * @param {string} [sortBy='place']
+ * @returns {Array<object>}
+ */
+WebLynx.sortRacersForDisplay = function(racers, sortBy) {
+  const list = (racers || []).slice();
+  const mode = String(sortBy || 'place').toLowerCase();
+
+  if (mode === 'lane') {
+    return list.sort(function(a, b) { return a.lane - b.lane; });
+  }
+
+  function placeTier(racer) {
+    if (!racer || !racer.hasPlaceData) {
+      return 2;
+    }
+    const text = String(racer.placeText || '').trim();
+    const numeric = parseInt(text, 10);
+    if (!isNaN(numeric) && numeric > 0) {
+      return 1;
+    }
+    if (text === '') {
+      return 2;
+    }
+    return 3;
+  }
+
+  function comparePlace(a, b) {
+    const tierA = placeTier(a);
+    const tierB = placeTier(b);
+    if (tierA !== tierB) {
+      return tierA - tierB;
+    }
+    if (tierA === 1) {
+      return parseInt(a.placeText, 10) - parseInt(b.placeText, 10);
+    }
+    if (tierA === 3) {
+      return String(a.placeText).localeCompare(String(b.placeText));
+    }
+    return 0;
+  }
+
+  return list.sort(function(a, b) {
+    const byPlace = comparePlace(a, b);
+    if (byPlace !== 0) {
+      return byPlace;
+    }
+    return a.lane - b.lane;
+  });
+};
+
+/**
  * Race clock fade in/out (hidden at 0:00 on start list, fades in when running, fades out
  * when all racers report 0 laps remaining — no fade-out if lap data is unavailable).
  */
