@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
 using WebLynx2.Models;
+using WebLynx2.People;
 
 namespace WebLynx2;
 
@@ -10,6 +11,8 @@ public class RaceStateManager
     private readonly MessageParser _messageParser;
 
     public RaceData CurrentRace { get; private set; } = new();
+
+    public LynxPeopleFile? People { get; set; }
 
     public event EventHandler<RaceData>? RaceUpdated;
 
@@ -112,6 +115,8 @@ public class RaceStateManager
         foreach (var racer in racers)
             racer.InitializeDelayedLapCount();
 
+        RefreshPeopleThenResolve();
+
         if (racers.Count > 0)
             _logger.LogInformation("Loaded new racer list with {Count} racers", racers.Count);
         else
@@ -199,7 +204,35 @@ public class RaceStateManager
         }
 
         CurrentRace.Status = RaceStatus.Finished;
+        RefreshPeopleThenResolve();
         _logger.LogInformation("Updated final results for {Count} racers", racers.Count);
+    }
+
+    /// <summary>
+    /// Reloads Lynx.ppl when its timestamp changes and re-resolves rosters already on the current race.
+    /// Clock updates do not call this.
+    /// </summary>
+    public void RefreshRelayRosters()
+    {
+        if (People is null || !People.Refresh())
+            return;
+
+        ResolveRelayRosters();
+        CurrentRace.LastUpdated = DateTime.UtcNow;
+        RaceUpdated?.Invoke(this, CurrentRace);
+    }
+
+    private void RefreshPeopleThenResolve()
+    {
+        People?.Refresh();
+        ResolveRelayRosters();
+    }
+
+    private void ResolveRelayRosters()
+    {
+        var people = People?.Snapshot();
+        foreach (var racer in CurrentRace.Racers)
+            racer.Roster = RelayRoster.Resolve(racer.RelayMemberIds, people);
     }
 
     private void ProcessAnnouncementMessage(string text)

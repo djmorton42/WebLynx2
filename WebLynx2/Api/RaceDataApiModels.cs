@@ -25,6 +25,7 @@ public class RacerApiResponse
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Affiliation { get; set; } = string.Empty;
+    public List<RelayRosterMember> Roster { get; set; } = [];
     public string PlaceText { get; set; } = string.Empty;
     public bool HasPlaceData { get; set; }
     public TimeSpan? ReactionTime { get; set; }

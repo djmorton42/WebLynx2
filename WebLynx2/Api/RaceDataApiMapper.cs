@@ -56,6 +56,7 @@ public class RaceDataApiMapper(
             Id = racer.Id,
             Name = racer.Name,
             Affiliation = racer.Affiliation,
+            Roster = racer.Roster,
             PlaceText = racer.Place.PlaceText,
             HasPlaceData = racer.Place.HasPlaceData,
             ReactionTime = racer.ReactionTime,

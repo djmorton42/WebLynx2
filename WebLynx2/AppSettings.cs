@@ -27,6 +27,9 @@ public sealed class EventSettings
 
     public string OfficialResultsPath { get; set; } = ".";
 
+    /// <summary>FinishLynx people file (Lynx.ppl) used to name relay team members.</summary>
+    public string PeopleFilePath { get; set; } = "";
+
     public string FileEncoding { get; set; } = "ISO-8859-1";
 
     public int PollingIntervalSeconds { get; set; } = 1;

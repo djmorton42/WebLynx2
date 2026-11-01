@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using WebLynx2.People;
 
 namespace WebLynx2.UnofficialResults;
 
@@ -22,6 +23,8 @@ public sealed class UnofficialResultsCatalog
     }
 
     public Encoding FileEncoding { get; set; } = Encoding.GetEncoding("ISO-8859-1");
+
+    public LynxPeopleFile? People { get; set; }
 
     public int Count => _results.Count;
 
@@ -43,6 +46,7 @@ public sealed class UnofficialResultsCatalog
             return;
         }
 
+        var peopleChanged = People?.Refresh() == true;
         var lifFiles = Directory.GetFiles(directoryPath, "*.lif", SearchOption.TopDirectoryOnly);
 
         foreach (var filePath in lifFiles)
@@ -52,6 +56,11 @@ public sealed class UnofficialResultsCatalog
         }
 
         PruneMissingFiles(lifFiles);
+        if (peopleChanged)
+        {
+            foreach (var race in _results.Values)
+                ApplyRoster(race);
+        }
     }
 
     public UnofficialRaceResult? GetLatestRace() =>
@@ -172,7 +181,17 @@ public sealed class UnofficialResultsCatalog
             lastWriteTime = DateTime.UtcNow;
         }
 
-        return LifFileParser.ParseLines(lines, filePath, lastWriteTime);
+        var race = LifFileParser.ParseLines(lines, filePath, lastWriteTime);
+        if (race is not null)
+            ApplyRoster(race);
+        return race;
+    }
+
+    private void ApplyRoster(UnofficialRaceResult race)
+    {
+        var people = People?.Snapshot();
+        foreach (var racer in race.Racers)
+            racer.Roster = RelayRoster.Resolve(racer.RelayMemberIds, people);
     }
 
     private void PruneMissingFiles(string[] lifFiles)

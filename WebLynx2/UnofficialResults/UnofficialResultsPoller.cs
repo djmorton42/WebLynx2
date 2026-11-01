@@ -23,6 +23,9 @@ public sealed class UnofficialResultsPoller : IAsyncDisposable
 
     public UnofficialResultsCatalog Catalog { get; }
 
+    /// <summary>Invoked after each directory scan. Used to reload Lynx.ppl without touching the clock.</summary>
+    public Action? AfterRefresh { get; set; }
+
     public bool IsRunning
     {
         get
@@ -104,6 +107,15 @@ public sealed class UnofficialResultsPoller : IAsyncDisposable
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error polling unofficial results directory");
+            }
+
+            try
+            {
+                AfterRefresh?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing relay rosters");
             }
 
             try

@@ -76,6 +76,13 @@ public class PlaceData : IComparable<PlaceData>
     }
 }
 
+public sealed class RelayRosterMember
+{
+    public string Id { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+}
+
 public class Racer
 {
     private decimal _lapsRemaining;
@@ -86,6 +93,8 @@ public class Racer
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Affiliation { get; set; } = string.Empty;
+    public List<string> RelayMemberIds { get; set; } = [];
+    public List<RelayRosterMember> Roster { get; set; } = [];
     public PlaceData Place { get; set; } = new();
     public TimeSpan? ReactionTime { get; set; }
     public TimeSpan? CumulativeSplitTime { get; set; }

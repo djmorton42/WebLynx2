@@ -1,3 +1,5 @@
+using WebLynx2.Models;
+
 namespace WebLynx2.UnofficialResults;
 
 public class UnofficialRaceResult
@@ -21,6 +23,8 @@ public class UnofficialRacerResult
     public string LastName { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public List<string> RelayMemberIds { get; set; } = [];
+    public List<RelayRosterMember> Roster { get; set; } = [];
     public string Affiliation { get; set; } = string.Empty;
     public string FinishTimeRaw { get; set; } = string.Empty;
     public string FinishTimeFormatted { get; set; } = string.Empty;

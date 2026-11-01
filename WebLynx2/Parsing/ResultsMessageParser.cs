@@ -86,18 +86,19 @@ public class ResultsMessageParser
                 if (parts.Length >= 3)
                     reactionTime = TimeSpanParser.Parse(parts[2]);
 
-                return new Racer
+                var racer = new Racer
                 {
                     Place = placeData,
                     Lane = lane,
                     Id = id,
-                    Name = name ?? string.Empty,
                     Affiliation = affiliation ?? string.Empty,
                     FinalTime = finalTime,
                     DeltaTime = deltaTime,
                     ReactionTime = reactionTime,
                     HasFinished = true
                 };
+                RelayRosterName.ApplyCombinedName(racer, name);
+                return racer;
             }
         }
         catch (Exception ex)

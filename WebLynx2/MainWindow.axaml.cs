@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using WebLynx2.Api;
 using WebLynx2.Models;
 using WebLynx2.Utilities;
+using WebLynx2.People;
 using WebLynx2.UnofficialResults;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -77,7 +78,11 @@ public partial class MainWindow : Window
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        _raceStateRefreshTimer.Tick += (_, _) => RefreshRaceStateDisplay();
+        _raceStateRefreshTimer.Tick += (_, _) =>
+        {
+            _raceStateManager?.RefreshRelayRosters();
+            RefreshRaceStateDisplay();
+        };
         _raceStateRefreshTimer.Start();
 
         ClearRaceStateDisplay();
@@ -103,6 +108,7 @@ public partial class MainWindow : Window
         EventSubtitleTextBox.Text = ev.Subtitle;
         UnofficialResultsPathTextBox.Text = ev.UnofficialResultsPath;
         OfficialResultsPathTextBox.Text = ev.OfficialResultsPath;
+        PeopleFilePathTextBox.Text = ev.PeopleFilePath;
         SelectFileEncodingComboItem(FileEncodingComboBox, ev.FileEncoding);
         ResultsPollingIntervalNumericUpDown.Value = Math.Clamp(ev.PollingIntervalSeconds, 1, 3600);
         DelayedDisplaySecondsNumericUpDown.Value = Math.Clamp(ev.DelayedDisplaySeconds, 0, 60);
@@ -249,6 +255,7 @@ public partial class MainWindow : Window
                 Subtitle = EventSubtitleTextBox.Text ?? "",
                 UnofficialResultsPath = (UnofficialResultsPathTextBox.Text ?? "").Trim(),
                 OfficialResultsPath = (OfficialResultsPathTextBox.Text ?? "").Trim(),
+                PeopleFilePath = (PeopleFilePathTextBox.Text ?? "").Trim(),
                 FileEncoding = (FileEncodingComboBox.SelectedItem as ComboBoxItem)?.Content as string
                     ?? FileEncodingComboBox.SelectedItem?.ToString()
                     ?? existing.Event.FileEncoding,
@@ -422,6 +429,34 @@ public partial class MainWindow : Window
 
     private async void OfficialResultsPathBrowse_OnClick(object? sender, RoutedEventArgs e) =>
         await PickFolderIntoTextBoxAsync(OfficialResultsPathTextBox, "Official results folder");
+
+    private async void PeopleFilePathBrowse_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var top = TopLevel.GetTopLevel(this);
+        var storage = top?.StorageProvider;
+        if (storage is null || !storage.CanOpen)
+            return;
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Lynx people file",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("FinishLynx people")
+                {
+                    Patterns = ["*.ppl"]
+                }
+            ]
+        });
+
+        if (files.Count < 1)
+            return;
+
+        var path = files[0].TryGetLocalPath();
+        if (!string.IsNullOrEmpty(path))
+            PeopleFilePathTextBox.Text = path;
+    }
 
     private void ForcedAnnouncementApply_OnClick(object? sender, RoutedEventArgs e)
     {
@@ -628,14 +663,30 @@ public partial class MainWindow : Window
             return;
         }
 
+        var peoplePath = (PeopleFilePathTextBox.Text ?? "").Trim();
+        LynxPeopleFile? people = null;
+        if (!string.IsNullOrEmpty(peoplePath))
+        {
+            people = new LynxPeopleFile
+            {
+                FilePath = peoplePath,
+                FileEncoding = ResolveFileEncoding()
+            };
+        }
+
+        raceState.People = people;
         var unofficialCatalog = new UnofficialResultsCatalog(
             raceLogFactory.CreateLogger("UnofficialResultsCatalog"))
         {
-            FileEncoding = ResolveFileEncoding()
+            FileEncoding = ResolveFileEncoding(),
+            People = people
         };
         var unofficialPoller = new UnofficialResultsPoller(
             unofficialCatalog,
-            raceLogFactory.CreateLogger("UnofficialResultsPoller"));
+            raceLogFactory.CreateLogger("UnofficialResultsPoller"))
+        {
+            AfterRefresh = () => raceState.RefreshRelayRosters()
+        };
 
         var httpServer = new RaceHttpServer(
             raceLogFactory.CreateLogger<RaceHttpServer>(),

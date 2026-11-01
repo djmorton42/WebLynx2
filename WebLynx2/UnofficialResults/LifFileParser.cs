@@ -1,6 +1,7 @@
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
+using WebLynx2.Parsing;
 
 namespace WebLynx2.UnofficialResults;
 
@@ -155,14 +156,16 @@ public static class LifFileParser
         int.TryParse(racerIdStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var racerId);
         int.TryParse(lineNumberStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lineNumber);
 
+        var isRelayRoster = RelayRosterName.TryParseMemberIds(firstName, out var memberIds);
         var racer = new UnofficialRacerResult
         {
             Position = position.Trim(),
             RacerId = racerId,
             LineNumber = lineNumber,
             LastName = lastName,
-            FirstName = firstName,
-            Name = $"{firstName} {lastName}".Trim(),
+            FirstName = isRelayRoster ? "" : firstName,
+            Name = isRelayRoster ? lastName.Trim() : $"{firstName} {lastName}".Trim(),
+            RelayMemberIds = isRelayRoster ? memberIds.ToList() : [],
             Affiliation = affiliation,
             FinishTimeRaw = finishTime,
             IsSpecialPosition = IsSpecialPosition(position)

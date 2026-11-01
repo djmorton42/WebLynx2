@@ -147,14 +147,15 @@ public class StartListMessageParser
                     "Parsed racer: Lane={Lane}, ID={Id}, Name='{Name}', Affiliation='{Affiliation}'",
                     lane, id, name, affiliation);
 
-                return new Racer
+                var racer = new Racer
                 {
                     Lane = lane,
                     Id = id,
-                    Name = name ?? string.Empty,
                     Affiliation = affiliation ?? string.Empty,
                     LapsRemaining = laps
                 };
+                RelayRosterName.ApplyCombinedName(racer, name);
+                return racer;
             }
 
             _logger.LogDebug("Line too short for racer parsing: {Length} chars", line.Length);

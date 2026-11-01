@@ -58,7 +58,7 @@
                                FontWeight="SemiBold" />
                     <Grid ColumnDefinitions="Auto,*"
                           ColumnSpacing="8"
-                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                           RowSpacing="4">
                         <TextBlock Grid.Row="0" Grid.Column="0"
                                    VerticalAlignment="Center"
@@ -163,6 +163,23 @@
                                        FormatString="N0"
                                        ShowButtonSpinner="True"
                                        ClipValueToMinMax="True" />
+
+                        <TextBlock Grid.Row="8" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Lynx People File" />
+                        <Grid Grid.Row="8"
+                              Grid.Column="1"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="6">
+                            <TextBox x:Name="PeopleFilePathTextBox"
+                                     Grid.Column="0"
+                                     VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
+                                    Content="Browse…"
+                                    MinWidth="70"
+                                    VerticalAlignment="Center"
+                                    Click="PeopleFilePathBrowse_OnClick" />
+                        </Grid>
                     </Grid>
                 </StackPanel>
             </Border>
