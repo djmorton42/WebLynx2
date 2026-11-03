@@ -27,7 +27,10 @@ public sealed class EventSettings
 
     public string OfficialResultsPath { get; set; } = ".";
 
-    /// <summary>FinishLynx people file (Lynx.ppl) used to name relay team members.</summary>
+    /// <summary>
+    /// FinishLynx people file (Lynx.ppl) used to name relay team members.
+    /// Decoded on its own as UTF-16 or ASCII; <see cref="FileEncoding"/> does not apply.
+    /// </summary>
     public string PeopleFilePath { get; set; } = "";
 
     public string FileEncoding { get; set; } = "ISO-8859-1";

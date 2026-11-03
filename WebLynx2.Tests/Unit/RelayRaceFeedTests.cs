@@ -182,8 +182,7 @@ public class RelayRaceFeedTests : IDisposable
     private static LynxPeopleFile OpenPeople(string path) =>
         new()
         {
-            FilePath = path,
-            FileEncoding = Encoding.Latin1
+            FilePath = path
         };
 
     private static RaceStateManager CreateManager(LynxPeopleFile people)

@@ -221,8 +221,7 @@ public class UnofficialResultsCatalogTests : IDisposable
         File.WriteAllText(path, text, Encoding.Latin1);
         return new LynxPeopleFile
         {
-            FilePath = path,
-            FileEncoding = Encoding.Latin1
+            FilePath = path
         };
     }
 

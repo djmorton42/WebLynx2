@@ -669,8 +669,7 @@ public partial class MainWindow : Window
         {
             people = new LynxPeopleFile
             {
-                FilePath = peoplePath,
-                FileEncoding = ResolveFileEncoding()
+                FilePath = peoplePath
             };
         }
 

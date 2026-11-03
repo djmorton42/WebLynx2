@@ -90,7 +90,24 @@
                                        ShowButtonSpinner="True"
                                        ClipValueToMinMax="True" />
 
-                        <TextBlock Grid.Row="3"
+                        <TextBlock Grid.Row="3" Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="Lynx People File" />
+                        <Grid Grid.Row="3"
+                              Grid.Column="1"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="6">
+                            <TextBox x:Name="PeopleFilePathTextBox"
+                                     Grid.Column="0"
+                                     VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
+                                    Content="Browse…"
+                                    MinWidth="70"
+                                    VerticalAlignment="Center"
+                                    Click="PeopleFilePathBrowse_OnClick" />
+                        </Grid>
+
+                        <TextBlock Grid.Row="4"
                                    Grid.Column="0"
                                    Grid.ColumnSpan="2"
                                    Text="Results Configuration"
@@ -98,10 +115,10 @@
                                    HorizontalAlignment="Left"
                                    Margin="0,4,0,0" />
 
-                        <TextBlock Grid.Row="4" Grid.Column="0"
+                        <TextBlock Grid.Row="5" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Unofficial Results Path" />
-                        <Grid Grid.Row="4"
+                        <Grid Grid.Row="5"
                               Grid.Column="1"
                               ColumnDefinitions="*,Auto"
                               ColumnSpacing="6">
@@ -115,11 +132,11 @@
                                     Click="UnofficialResultsPathBrowse_OnClick" />
                         </Grid>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0"
+                        <TextBlock Grid.Row="6" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Official Results Path"
                                    Opacity="0.5" />
-                        <Grid Grid.Row="5"
+                        <Grid Grid.Row="6"
                               Grid.Column="1"
                               ColumnDefinitions="*,Auto"
                               ColumnSpacing="6">
@@ -135,11 +152,11 @@
                                     Click="OfficialResultsPathBrowse_OnClick" />
                         </Grid>
 
-                        <TextBlock Grid.Row="6" Grid.Column="0"
+                        <TextBlock Grid.Row="7" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="File Encoding" />
                         <ComboBox x:Name="FileEncodingComboBox"
-                                  Grid.Row="6" Grid.Column="1"
+                                  Grid.Row="7" Grid.Column="1"
                                   HorizontalAlignment="Left"
                                   VerticalAlignment="Center"
                                   SelectedIndex="0">
@@ -148,11 +165,11 @@
                             <ComboBoxItem Content="Windows-1252" />
                         </ComboBox>
 
-                        <TextBlock Grid.Row="7" Grid.Column="0"
+                        <TextBlock Grid.Row="8" Grid.Column="0"
                                    VerticalAlignment="Center"
                                    Text="Results Polling Interval (s)" />
                         <NumericUpDown x:Name="ResultsPollingIntervalNumericUpDown"
-                                       Grid.Row="7" Grid.Column="1"
+                                       Grid.Row="8" Grid.Column="1"
                                        Width="120"
                                        HorizontalAlignment="Left"
                                        VerticalAlignment="Center"
@@ -163,23 +180,6 @@
                                        FormatString="N0"
                                        ShowButtonSpinner="True"
                                        ClipValueToMinMax="True" />
-
-                        <TextBlock Grid.Row="8" Grid.Column="0"
-                                   VerticalAlignment="Center"
-                                   Text="Lynx People File" />
-                        <Grid Grid.Row="8"
-                              Grid.Column="1"
-                              ColumnDefinitions="*,Auto"
-                              ColumnSpacing="6">
-                            <TextBox x:Name="PeopleFilePathTextBox"
-                                     Grid.Column="0"
-                                     VerticalAlignment="Center" />
-                            <Button Grid.Column="1"
-                                    Content="Browse…"
-                                    MinWidth="70"
-                                    VerticalAlignment="Center"
-                                    Click="PeopleFilePathBrowse_OnClick" />
-                        </Grid>
                     </Grid>
                 </StackPanel>
             </Border>

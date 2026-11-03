@@ -87,20 +87,55 @@ public class LynxPeopleFileTests : IDisposable
     }
 
     [Fact]
-    public void Refresh_Latin1File_ReadsAccentedNames()
+    public void Refresh_Utf16WithBom_ReadsAccentedNames()
     {
         var path = Path.Combine(_dir, "Lynx.ppl");
-        File.WriteAllBytes(path, Encoding.Latin1.GetBytes("104, José, Ana, Club\n"));
+        File.WriteAllText(path, "104, José, Ana, Club\n", Encoding.Unicode);
 
-        var people = new LynxPeopleFile
-        {
-            FilePath = path,
-            FileEncoding = Encoding.Latin1
-        };
+        var people = new LynxPeopleFile { FilePath = path };
 
         Assert.True(people.Refresh());
         Assert.Equal("José", people.Find("104")!.LastName);
         Assert.Equal("Ana", people.Find("104")!.FirstName);
+    }
+
+    [Fact]
+    public void Refresh_Utf16WithoutBom_ReadsAccentedNames()
+    {
+        var path = Path.Combine(_dir, "Lynx.ppl");
+        File.WriteAllBytes(path, Encoding.Unicode.GetBytes("104, José, Ana, Club\n"));
+
+        var people = new LynxPeopleFile { FilePath = path };
+
+        Assert.True(people.Refresh());
+        Assert.Equal("José", people.Find("104")!.LastName);
+        Assert.Equal("Ana", people.Find("104")!.FirstName);
+    }
+
+    [Fact]
+    public void Refresh_Utf16BigEndianWithBom_ReadsAccentedNames()
+    {
+        var path = Path.Combine(_dir, "Lynx.ppl");
+        File.WriteAllText(path, "104, José, Ana, Club\n", Encoding.BigEndianUnicode);
+
+        var people = new LynxPeopleFile { FilePath = path };
+
+        Assert.True(people.Refresh());
+        Assert.Equal("José", people.Find("104")!.LastName);
+        Assert.Equal("Ana", people.Find("104")!.FirstName);
+    }
+
+    [Fact]
+    public void Refresh_Ascii_ReadsNames()
+    {
+        var path = Path.Combine(_dir, "Lynx.ppl");
+        File.WriteAllBytes(path, Encoding.ASCII.GetBytes("104, Wong, Eugene, Toronto\n"));
+
+        var people = new LynxPeopleFile { FilePath = path };
+
+        Assert.True(people.Refresh());
+        Assert.Equal("Wong", people.Find("104")!.LastName);
+        Assert.Equal("Eugene", people.Find("104")!.FirstName);
     }
 
     [Fact]
@@ -121,11 +156,7 @@ public class LynxPeopleFileTests : IDisposable
         var path = Path.Combine(_dir, "Lynx.ppl");
         File.WriteAllText(path, "104, Wong, Eugene, Toronto\n", Encoding.Latin1);
 
-        var people = new LynxPeopleFile
-        {
-            FilePath = path,
-            FileEncoding = Encoding.Latin1
-        };
+        var people = new LynxPeopleFile { FilePath = path };
 
         Assert.True(people.Refresh());
         Assert.False(people.Refresh());

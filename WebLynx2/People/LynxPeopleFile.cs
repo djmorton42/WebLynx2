@@ -74,6 +74,68 @@ public static class RelayRoster
 }
 
 /// <summary>
+/// Decodes a FinishLynx people file. These files are UTF-16 (usually little-endian, with or without a BOM)
+/// or plain ASCII, independent of the encoding used for <c>.lif</c> results.
+/// </summary>
+public static class LynxPeopleFileEncoding
+{
+    public static string Decode(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.IsEmpty)
+            return "";
+
+        if (bytes.StartsWith(Encoding.Unicode.Preamble))
+            return Encoding.Unicode.GetString(AlignedUtf16(bytes[Encoding.Unicode.Preamble.Length..]));
+
+        if (bytes.StartsWith(Encoding.BigEndianUnicode.Preamble))
+            return Encoding.BigEndianUnicode.GetString(AlignedUtf16(bytes[Encoding.BigEndianUnicode.Preamble.Length..]));
+
+        if (TryDetectUtf16WithoutBom(bytes, out var encoding))
+            return encoding.GetString(AlignedUtf16(bytes));
+
+        return Encoding.ASCII.GetString(bytes);
+    }
+
+    private static ReadOnlySpan<byte> AlignedUtf16(ReadOnlySpan<byte> bytes) =>
+        (bytes.Length & 1) == 0 ? bytes : bytes[..^1];
+
+    private static bool TryDetectUtf16WithoutBom(ReadOnlySpan<byte> bytes, out Encoding encoding)
+    {
+        encoding = Encoding.Unicode;
+        if (bytes.Length < 2)
+            return false;
+
+        var sampleLength = Math.Min(bytes.Length, 512);
+        sampleLength -= sampleLength & 1;
+        var pairs = sampleLength / 2;
+        var zeroAtEven = 0;
+        var zeroAtOdd = 0;
+        for (var i = 0; i < sampleLength; i += 2)
+        {
+            if (bytes[i] == 0)
+                zeroAtEven++;
+            if (bytes[i + 1] == 0)
+                zeroAtOdd++;
+        }
+
+        // Latin-script UTF-16 stores a NUL in the high byte of almost every code unit.
+        if (zeroAtOdd > zeroAtEven && zeroAtOdd * 2 >= pairs)
+        {
+            encoding = Encoding.Unicode;
+            return true;
+        }
+
+        if (zeroAtEven > zeroAtOdd && zeroAtEven * 2 >= pairs)
+        {
+            encoding = Encoding.BigEndianUnicode;
+            return true;
+        }
+
+        return false;
+    }
+}
+
+/// <summary>
 /// Cached FinishLynx <c>Lynx.ppl</c> index. Reloads only when the file's last write time changes.
 /// </summary>
 public sealed class LynxPeopleFile
@@ -84,8 +146,6 @@ public sealed class LynxPeopleFile
     private string? _loadedPath;
 
     public string? FilePath { get; set; }
-
-    public Encoding FileEncoding { get; set; } = Encoding.GetEncoding("ISO-8859-1");
 
     /// <summary>True when the in-memory index contents changed.</summary>
     public bool Refresh()
@@ -126,8 +186,13 @@ public sealed class LynxPeopleFile
             try
             {
                 using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var reader = new StreamReader(stream, FileEncoding, detectEncodingFromByteOrderMarks: false);
-                text = reader.ReadToEnd();
+                var length = stream.Length;
+                if (length > int.MaxValue)
+                    return false;
+
+                var bytes = new byte[length];
+                stream.ReadExactly(bytes);
+                text = LynxPeopleFileEncoding.Decode(bytes);
             }
             catch (IOException)
             {
