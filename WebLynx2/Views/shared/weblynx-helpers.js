@@ -376,6 +376,135 @@ WebLynx.updateRaceData = function(callback, sortBy = 'place') {
     });
 };
 
+/**
+ * Video delay for overlays composited on a late camera picture.
+ *
+ * An HDMI encoder adds a fixed lag to the camera feed while FinishLynx data is live.
+ * A view opts in by wrapping its race-data callback with WebLynx.delayRaceData; the
+ * callback then receives the poll that arrived videoDelayMs ago (read from viewConfig),
+ * with the newest viewConfig and keyValues spliced in. Views that call updateRaceData
+ * directly stay live.
+ */
+
+/** Largest accepted videoDelayMs. */
+WebLynx.MAX_VIDEO_DELAY_MS = 30000;
+
+/** How much poll history the delay buffer keeps, relative to the newest poll. */
+WebLynx.VIDEO_DELAY_RETAIN_MS = 30000;
+
+/**
+ * videoDelayMs from viewConfig, falling back to the flat keyValues store.
+ * Missing, non-numeric, and negative values are 0. The result is clamped to MAX_VIDEO_DELAY_MS.
+ * @param {object|null} viewConfig
+ * @returns {number} integer milliseconds
+ */
+WebLynx.readVideoDelayMs = function(viewConfig) {
+  let raw = viewConfig ? viewConfig.videoDelayMs : undefined;
+  if (raw == null || raw === '') {
+    raw = (WebLynx._keyValues || {}).videoDelayMs;
+  }
+  if (raw == null || raw === '') {
+    return 0;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+  return Math.min(Math.floor(value), WebLynx.MAX_VIDEO_DELAY_MS);
+};
+
+/**
+ * The buffer entry to present, or null while the buffer is still filling.
+ * @param {Array<{receivedAt:number, data:object}>} samples in receive order
+ * @param {number} now performance.now()
+ * @param {number} delayMs
+ * @returns {{receivedAt:number, data:object}|null}
+ */
+WebLynx._selectDelayedEntry = function(samples, now, delayMs) {
+  if (!samples || samples.length === 0) {
+    return null;
+  }
+  if (!(delayMs > 0)) {
+    return samples[samples.length - 1];
+  }
+  // Never paint early: showing the first poll and then seeking back would jump the clock.
+  if (now < samples[0].receivedAt + delayMs) {
+    return null;
+  }
+  const cutoff = now - delayMs;
+  for (let i = samples.length - 1; i >= 0; i--) {
+    if (samples[i].receivedAt <= cutoff) {
+      return samples[i];
+    }
+  }
+  return null;
+};
+
+/**
+ * @param {Array<{receivedAt:number, data:object}>} samples in receive order
+ * @param {number} now performance.now()
+ * @param {number} delayMs
+ * @returns {object|null} the data object to present, or null while the buffer is still filling
+ */
+WebLynx.selectDelayedSample = function(samples, now, delayMs) {
+  const entry = WebLynx._selectDelayedEntry(samples, now, delayMs);
+  return entry ? entry.data : null;
+};
+
+/**
+ * Wrap a race-data callback so it renders the race as of now - videoDelayMs.
+ * delayMs 0 forwards each poll immediately. The same historical sample is never
+ * presented twice, so the race clock keeps interpolating from its last anchor.
+ * @param {function(object|null, Error=):void} present
+ * @returns {function(object|null, Error=):void}
+ */
+WebLynx.delayRaceData = function(present) {
+  const samples = [];
+  let presented = null;
+
+  return function(data, error) {
+    if (error) {
+      if (samples.length === 0) {
+        present(null, error);
+      } else {
+        // Keep the delayed picture and clock; one failed poll must not clear the overlay.
+        console.warn('Race-data poll failed; holding delayed overlay:', error);
+      }
+      return;
+    }
+    if (!data) {
+      return;
+    }
+
+    const receivedAt = performance.now();
+    samples.push({ receivedAt: receivedAt, data: data });
+    const oldestKept = receivedAt - WebLynx.VIDEO_DELAY_RETAIN_MS;
+    while (samples.length > 1 && samples[0].receivedAt < oldestKept) {
+      samples.shift();
+    }
+
+    // Read the delay from this poll so a save takes effect on the next response.
+    const delayMs = WebLynx.readVideoDelayMs(data.viewConfig);
+
+    if (delayMs === 0) {
+      presented = samples[samples.length - 1];
+      present(data);
+      return;
+    }
+
+    const entry = WebLynx._selectDelayedEntry(samples, performance.now(), delayMs);
+    if (!entry || entry === presented) {
+      return;
+    }
+
+    presented = entry;
+    present(Object.assign({}, entry.data, {
+      viewConfig: data.viewConfig,
+      keyValues: data.keyValues
+    }));
+  };
+};
+
 WebLynx.getStatusInfo = function(raceStatus) {
   const statusMap = {
     'NotStarted': { text: 'Ready', class: 'notstarted' },
